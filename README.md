@@ -4,7 +4,8 @@ The repository contains three main files:
 
 1. `load_qsc_data.py`: This script generates CSV files from the qsc code output. When run, it creates a folder called "data" with the CSV files.
 2. `tse_qsc.py`: This script uses t-SNE and HDBSCAN to map the parameter space to a lower dimensional space and identify clusters. It also plots the resulting stellarators based on the pyQSC package.
-3. `bnn_qsc.py`: This is a draft attempt to use Bayesian neural networks to obtain a representation of the inverse problem (given a desired set of stellarator properties, find the corresponding near-axis parameters).
+3. `nn_qsc.py`: This is a draft attempt to use neural networks to obtain a representation of the inverse problem (given a desired set of stellarator properties, find the corresponding near-axis parameters).
+4. `bnn_qsc.py`: This is a draft attempt to use Bayesian neural networks to obtain a representation of the inverse problem (given a desired set of stellarator properties, find the corresponding near-axis parameters).
 
 The `tse_qsc.py` script is a Python script used for visualizing and clustering the dataset of near-axis configurations using t-SNE and HDBSCAN. The script performs the following tasks:
 

@@ -8,45 +8,15 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-import tensorflow_probability as tfp
 
-def build_bayesian_neural_network(input_shape, output_shape):
-    def posterior_mean_field(kernel_size, bias_size=0, dtype=None):
-        n = kernel_size + bias_size
-        c = np.log(np.expm1(1.))
-        return tf.keras.Sequential([
-            tfp.layers.VariableLayer(2 * n, dtype=dtype),
-            tfp.layers.DistributionLambda(lambda t: tfp.distributions.Normal(
-                loc=t[..., :n],
-                scale=1e-5 + tf.nn.softplus(c + t[..., n:])))
-        ])
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
 
-    def prior_trainable(kernel_size, bias_size=0, dtype=None):
-        n = kernel_size + bias_size
-        return tf.keras.Sequential([
-            tfp.layers.VariableLayer(n, dtype=dtype),
-            tfp.layers.DistributionLambda(lambda t: tfp.distributions.Normal(loc=t, scale=1))
-        ])
-
-    model = tf.keras.Sequential([
-        tfp.layers.DenseVariational(
-            units=128,
-            make_posterior_fn=posterior_mean_field,
-            make_prior_fn=prior_trainable,
-            kl_weight=1/X_train.shape[0],
-            activation='relu',
-            input_shape=(input_shape,)),
-        tfp.layers.DenseVariational(
-            units=64,
-            make_posterior_fn=posterior_mean_field,
-            make_prior_fn=prior_trainable,
-            kl_weight=1/X_train.shape[0],
-            activation='relu'),
-        tfp.layers.DenseVariational(
-            units=output_shape,
-            make_posterior_fn=posterior_mean_field,
-            make_prior_fn=prior_trainable,
-            kl_weight=1/X_train.shape[0])
+def build_neural_network(input_shape, output_shape):
+    model = Sequential([
+        Dense(128, activation='relu', input_shape=(input_shape,)),
+        Dense(64, activation='relu'),
+        Dense(output_shape)
     ])
 
     model.compile(optimizer='adam', loss='mse', metrics=['mae'])
@@ -75,7 +45,7 @@ X_test = scaler_x.transform(X_test)
 input_shape = X_train.shape[1]
 output_shape = Y_train.shape[1]
 
-model = build_bayesian_neural_network(input_shape, output_shape)
+model = build_neural_network(input_shape, output_shape)
 
 # Train the model
 epochs = 100
