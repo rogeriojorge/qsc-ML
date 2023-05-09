@@ -94,7 +94,7 @@ upper_bound = predicted_mean + (mae * confidence_level)
 
 plt.figure(figsize=(8, 8))
 plt.scatter(Y_test, predicted_mean, label='Predicted values', alpha=0.5)
-plt.plot([-2, 2], [-2, 2], 'r', label='Perfect predictions')  # Adjust the range according to your data
+plt.plot([0, 2], [0, 2], 'r', label='Perfect predictions')  # Adjust the range according to your data
 
 plt.xlabel('True values')
 plt.ylabel('Predicted values')
