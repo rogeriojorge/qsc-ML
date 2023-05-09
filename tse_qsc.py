@@ -22,19 +22,26 @@ from bokeh.resources import Resources
 from qsc import Qsc
 
 params = {
-    'perplexity': 40, # nfp2: 20, nfp3: 10, nfp4: 10
-    'min_cluster_size': 30,
-    'ntheta': 60,
-    'nphi': 110,
-    'ntheta_fourier': 20,
+    'perplexity': 50, # nfp2: 20, nfp3: 10, nfp4: 10
+    'min_cluster_size': 60,
+    'ntheta': 80,
+    'nphi': 120,
+    'ntheta_fourier': 22,
     'radii_to_try_qsc': [0.16, 0.14, 0.12, 0.1, 0.08, 0.05, 0.03],
     'zoom_qsc': 1.3,
     'nphi_qsc': 151,
     'highlight_color': 'red',
     'results_path': 'results',
     'data_path': 'data',
-    'tsne_parameters': 2 #only 2 or 3
+    'tsne_parameters': 2,
+    'nfp': 2
 }
+
+print('Usage: python tse_qsc.py [nfp] [dimensionality], where nfp=2, 3 or 4 and dimensionality=2 or 3. Defaults to nfp=2 and dimensionality=2.')
+if len(sys.argv) > 1:
+    params['nfp'] = int(sys.argv[1])
+    if len(sys.argv) > 2:
+        params['tsne_parameters'] = int(sys.argv[2])
 
 def create_3d_image(stel, ntheta, nphi, ntheta_fourier, radii_to_try_qsc, zoom_qsc):
     for r in radii_to_try_qsc:
@@ -69,14 +76,14 @@ def create_3d_image(stel, ntheta, nphi, ntheta_fourier, radii_to_try_qsc, zoom_q
 
 this_path = str(Path(__file__).parent.resolve())
 os.chdir(this_path)
-nfp =  int(sys.argv[1])
-filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{nfp}.csv')
+filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.csv')
 df = pd.read_csv(filename)
 df['y'] = df.filter(like='y', axis=1).sum(axis=1)
 rel_cols = [col for col in df.columns if col.startswith('x') or col == 'y']
 df_rel = df.loc[:, rel_cols]
 print(f'Loaded data from CSV file {filename} with shape {df_rel.shape}')
-results_path = os.path.join(this_path, params['results_path']+f'_nfp{nfp}')
+general_results_path = os.path.join(this_path, params['results_path'])
+results_path = os.path.join(general_results_path, f'nfp{params["nfp"]}')
 os.makedirs(results_path, exist_ok=True)
 
 print('Performing t-SNE')
@@ -97,10 +104,10 @@ elif params['tsne_parameters']==3:
     ax.set_xlabel('t-SNE 1')
     ax.set_ylabel('t-SNE 2')
     ax.set_zlabel('t-SNE 3')
-plt.title(f"t-SNE of nfp={nfp} with Perplexity={params['perplexity']}")
+plt.title(f"t-SNE of nfp={params['nfp']} with Perplexity={params['perplexity']}")
 plt.colorbar(scatter, ax=ax, label=r'$\sum_i y_i$')
 plt.tight_layout()
-plt.savefig(os.path.join(results_path,f'tse_nfp{nfp}_perplexity{params["perplexity"]}_{params["tsne_parameters"]}params.png'), dpi=200)
+plt.savefig(os.path.join(results_path,f'tse_nfp{params["nfp"]}_perplexity{params["perplexity"]}_{params["tsne_parameters"]}params.png'), dpi=200)
 
 print('Performing HDBSCAN')
 params['min_cluster_size'] = max(params['min_cluster_size'], int(len(X_tsne) / 40))
@@ -118,7 +125,7 @@ if params['tsne_parameters']==2:
     ))
     color_mapper = LinearColorMapper(palette=TolRainbow7, low=min(labels), high=max(labels))
     output_notebook()
-    p = figure(width=800, height=600, title=rf"HDBSCAN Clustering of nfp={nfp} using y mean", tools="pan,wheel_zoom,box_zoom,reset", output_backend="canvas")
+    p = figure(width=800, height=600, title=rf"HDBSCAN Clustering of nfp={params['nfp']} using y mean", tools="pan,wheel_zoom,box_zoom,reset", output_backend="canvas")
     p.add_tools(HoverTool(tooltips=[("Cluster", "@cluster"), ("Mean of y", "@y_mean")]))
     p.scatter('x', 'y', source=source, legend_field='cluster', color={'field': 'cluster', 'transform': color_mapper}, size=3, alpha=0.5)
     # p.scatter('x', 'y', source=source, color=params['highlight_color'], size='is_lowest_mean', line_color=params['highlight_color'])
@@ -141,7 +148,7 @@ if params['tsne_parameters']==2:
         x_values = x_selected.filter(like='x', axis=1).iloc[:, :10].values.flatten()
         rc, zs = np.insert(x_values[::2], 0, 1), np.insert(x_values[1::2], 0, 0)
         etabar, B2c = x_selected.loc[:, 'x11'].values[0], x_selected.loc[:, 'x12'].values[0]
-        stel = Qsc(rc=rc.tolist(), zs=zs.tolist(), nfp=nfp, etabar=etabar, order='r3', B2c=B2c, nphi=params['nphi_qsc'])
+        stel = Qsc(rc=rc.tolist(), zs=zs.tolist(), nfp=params['nfp'], etabar=etabar, order='r3', B2c=B2c, nphi=params['nphi_qsc'])
 
         mean_x, mean_y = np.mean(X_tsne[labels == label, 0]) - 7, np.mean(X_tsne[labels == label, 1]) + 7
 
@@ -154,16 +161,16 @@ if params['tsne_parameters']==2:
             print(e)
         pass
     print('  Saving Bokeh plot')
-    save(p, filename=os.path.join(results_path,       f"bokeh_tse_stellarators_nfp{nfp}_perplexity{params['perplexity']}.html"), title=f"HDBSCAN Clustering of nfp={nfp} using y mean", resources=Resources(mode="cdn"))
+    save(p, filename=os.path.join(results_path,       f"bokeh_tse_stellarators_nfp{params['nfp']}_perplexity{params['perplexity']}.html"), title=f"HDBSCAN Clustering of nfp={params['nfp']} using y mean", resources=Resources(mode="cdn"))
     p.toolbar_location = None
-    export_png(p, filename=os.path.join(results_path, f"bokeh_tse_stellarators_nfp{nfp}_perplexity{params['perplexity']}.png"))
+    export_png(p, filename=os.path.join(results_path, f"bokeh_tse_stellarators_nfp{params['nfp']}_perplexity{params['perplexity']}.png"))
 elif params['tsne_parameters']==3:
     import plotly.graph_objects as go
     fig = go.Figure(data=[go.Scatter3d(x=X_tsne[:, 0], y=X_tsne[:, 1], z=X_tsne[:, 2], mode='markers',
                                        marker=dict(color=labels, opacity=0.45, size=2, colorscale='jet'))])
-    fig.update_layout(title=f"HDBSCAN Clustering of nfp={nfp} using y mean",
+    fig.update_layout(title=f"HDBSCAN Clustering of nfp={params['nfp']} using y mean",
                     scene=dict(xaxis_title='t-SNE 1', yaxis_title='t-SNE 2', zaxis_title='t-SNE 3'),
-                    width=800, height=600)
+                    width=1150, height=900)
     print('  Plotting Plotly')
     for count, label in enumerate(np.unique(labels)):
         print(f'    Creating image {count+1}/{len(np.unique(labels))}')
@@ -172,7 +179,7 @@ elif params['tsne_parameters']==3:
         x_values = x_selected.filter(like='x', axis=1).iloc[:, :10].values.flatten()
         rc, zs = np.insert(x_values[::2], 0, 1), np.insert(x_values[1::2], 0, 0)
         etabar, B2c = x_selected.loc[:, 'x11'].values[0], x_selected.loc[:, 'x12'].values[0]
-        stel = Qsc(rc=rc.tolist(), zs=zs.tolist(), nfp=nfp, etabar=etabar, order='r3', B2c=B2c, nphi=params['nphi_qsc'])
+        stel = Qsc(rc=rc.tolist(), zs=zs.tolist(), nfp=params['nfp'], etabar=etabar, order='r3', B2c=B2c, nphi=params['nphi_qsc'])
         mean_x, mean_y, mean_z = np.mean(X_tsne[labels == label, 0]), np.mean(X_tsne[labels == label, 1]), np.mean(X_tsne[labels == label, 2])
         try:
             scale_factor = 4
@@ -182,5 +189,5 @@ elif params['tsne_parameters']==3:
             print(e)
             pass
     print('  Saving Plotly plot')
-    fig.write_html( os.path.join(results_path, f"plotly_tse_stellarators_nfp{nfp}_perplexity{params['perplexity']}_3parameters.html"))
-    fig.write_image(os.path.join(results_path, f"plotly_tse_stellarators_nfp{nfp}_perplexity{params['perplexity']}_3parameters.png"))
+    fig.write_html( os.path.join(results_path, f"plotly_tse_stellarators_nfp{params['nfp']}_perplexity{params['perplexity']}_3parameters.html"))
+    fig.write_image(os.path.join(results_path, f"plotly_tse_stellarators_nfp{params['nfp']}_perplexity{params['perplexity']}_3parameters.png"))

@@ -1,0 +1,13 @@
+bhtsne
+bokeh
+hdbscan
+matplotlib
+numpy
+pandas
+Pillow
+plotly
+qsc
+scikit_learn
+scipy
+keras
+tensorflow-probability
