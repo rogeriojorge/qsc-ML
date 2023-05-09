@@ -16,3 +16,6 @@ The `tse_qsc.py` script is a Python script used for visualizing and clustering t
 The script uses several libraries, including numpy, pandas, matplotlib, bhtsne, sklearn, hdbscan, bokeh, and qsc from the qsc library. The script takes two optional arguments, `nfp` (number of field periods) and `dimensionality`.
 
 In the code snippet you provided, the script reads the parameters and checks if additional arguments are passed. If so, it updates the parameters accordingly. The `create_3d_image` function is defined, which generates a 3D image of a stellarator given its parameters. The script then proceeds to load the CSV data, perform t-SNE and HDBSCAN, plot the results, and create the interactive plot with Bokeh (if 2D t-SNE is used) or Plotly (if 3D t-SNE is used).
+
+
+Thanks to Gonçalo Abreu for kickstarting this project.
