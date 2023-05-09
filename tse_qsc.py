@@ -22,7 +22,7 @@ from bokeh.resources import Resources
 from qsc import Qsc
 
 params = {
-    'perplexity': 10, # nfp2: 20, nfp3: 10, nfp4: 10
+    'perplexity': 40, # nfp2: 20, nfp3: 10, nfp4: 10
     'min_cluster_size': 30,
     'ntheta': 60,
     'nphi': 110,
