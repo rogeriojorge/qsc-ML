@@ -16,13 +16,13 @@ from sklearn.preprocessing import StandardScaler
 import hdbscan
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.models import HoverTool, LinearColorMapper, ImageURL
-from bokeh.palettes import TolRainbow7
+from bokeh.palettes import TolRainbow21
 from bokeh.io import output_notebook, export_png, save
 from bokeh.resources import Resources   
 from qsc import Qsc
 
 params = {
-    'perplexity': 55, # nfp2: 55, nfp3: 45, nfp4: 55
+    'perplexity': 45, # nfp2: 55, nfp3: 45, nfp4: 55
     'min_cluster_size': 60,
     'ntheta': 80,
     'nphi': 120,
@@ -123,7 +123,7 @@ if params['tsne_parameters']==2:
     y_mean=[cluster_means[label] for label in labels],
     is_lowest_mean=[label == min_y_mean_cluster for label in labels]
     ))
-    color_mapper = LinearColorMapper(palette=TolRainbow7, low=min(labels), high=max(labels))
+    color_mapper = LinearColorMapper(palette=TolRainbow21, low=min(labels), high=max(labels))
     output_notebook()
     p = figure(width=800, height=600, title=rf"HDBSCAN Clustering of nfp={params['nfp']} using y mean", tools="pan,wheel_zoom,box_zoom,reset", output_backend="canvas")
     p.add_tools(HoverTool(tooltips=[("Cluster", "@cluster"), ("Mean of y", "@y_mean")]))

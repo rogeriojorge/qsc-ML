@@ -7,21 +7,31 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.initializers import HeNormal
-from tensorflow.keras.layers import BatchNormalization, LeakyReLU
-from tensorflow.keras.optimizers import Nadam
+from keras.models import Sequential
+from keras.layers import Dense, Dropout
+from keras.initializers import HeNormal
+from keras.layers import BatchNormalization, LeakyReLU
+from keras.optimizers.legacy import Nadam, Adam, RMSprop, SGD
+from keras.layers import Conv1D, MaxPooling1D, Flatten, Dense, Dropout
+from keras.optimizers.schedules import ExponentialDecay
+from keras.losses import Huber
+import tensorflow as tf
 import joblib
 
 params = {'results_path': 'results',
           'data_path': 'data',
-          'nfp': 2}
+          'nfp': 2,
+          'model': 'cnn',# 'cnn' or 'nn',
+          'optimizer': Adam,# 'Adam', 'Nadam', 'RMSprop', 'SGD',
+          'learning_rate': 0.006,
+          'epochs': 50,
+          'batch_size': 512,
+          }
 
 # Function to build the neural network
 def build_neural_network(input_shape, output_shape):
     model = Sequential([
+        Dropout(0.5),
         Dense(512, kernel_initializer=HeNormal(), input_shape=(input_shape,)),
         LeakyReLU(),
         BatchNormalization(),
@@ -30,18 +40,29 @@ def build_neural_network(input_shape, output_shape):
         LeakyReLU(),
         BatchNormalization(),
         Dropout(0.1),
-        Dense(128, kernel_initializer=HeNormal()),
-        LeakyReLU(),
-        BatchNormalization(),
-        Dropout(0.1),
+        # Dense(128, kernel_initializer=HeNormal()),
+        # LeakyReLU(),
+        # BatchNormalization(),
+        # Dropout(0.1),
         Dense(64, kernel_initializer=HeNormal()),
         LeakyReLU(),
         BatchNormalization(),
         Dropout(0.1),
         Dense(output_shape)
     ])
+    return model
 
-    model.compile(optimizer=Nadam(learning_rate=0.001), loss='mse', metrics=['mae'])
+# Function to build the 1D CNN
+def build_cnn(input_shape, output_shape):
+    model = Sequential([
+        Conv1D(32, kernel_size=3, activation='relu', input_shape=input_shape),
+        MaxPooling1D(pool_size=2),
+        Conv1D(64, kernel_size=2, activation='relu'),
+        Flatten(),
+        Dense(128, activation='relu'),
+        Dropout(0.1),
+        Dense(output_shape)
+    ])
     return model
 
 # Set the number of field periods
@@ -77,18 +98,27 @@ X_train = scaler_x.transform(X_train)
 X_test = scaler_x.transform(X_test)
 
 # Build the neural network
-input_shape = X_train.shape[1]
-output_shape = Y_train.shape[1]
-
-model = build_neural_network(input_shape, output_shape)
+if params['model'] == 'cnn':
+    X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
+    X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
+    input_shape = (X_train.shape[1], 1)
+    output_shape = Y_train.shape[1]
+    model = build_cnn(input_shape, output_shape)
+else:
+    input_shape = X_train.shape[1]
+    output_shape = Y_train.shape[1]
+    model = build_neural_network(input_shape, output_shape)
 
 # Train the model
-epochs = 200  # Increased number of epochs
-batch_size = 64
-model.fit(X_train, Y_train, epochs=epochs, batch_size=batch_size, validation_split=0.1, verbose=1)
+learning_rate = ExponentialDecay(initial_learning_rate=params['learning_rate'], decay_steps=1000, decay_rate=0.9)
+metrics = ['mae']
+model.compile(optimizer=params['optimizer'](learning_rate=learning_rate), loss=Huber(), metrics=metrics)
+model.fit(X_train, Y_train, epochs=params['epochs'], batch_size=params['batch_size'], validation_split=0.2, verbose=1)
 
-loss, mae = model.evaluate(X_test, Y_test, verbose=0)
-print(f"Test MAE: {mae}")
+# loss, mae, rmse, mape, r2, cosine_similarity, log_cosh_error = model.evaluate(X_test, Y_test, verbose=0)
+loss, metric = model.evaluate(X_test, Y_test, verbose=0)
+print(f"Test metric: {metric}")
+print(f"Test loss: {loss}")
 
 # Save the model and scaler to files
 model.save(os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}.h5"))
@@ -105,8 +135,8 @@ max_x = np.max([Y_test, predictions])
 plt.plot([min_x, max_x], [min_x, max_x], 'r', label='Perfect predictions')  # Adjust the range according to your data
 plt.xlabel('True values')
 plt.ylabel('Predicted values')
-plt.title(f'True values vs Predicted values (nfp={params["nfp"]}))')
+plt.title(f'nfp={params["nfp"]}, model={params["model"]}, metric={metric:.3f}, loss={loss:.3f}, epochs={params["epochs"]}, batch_size={params["batch_size"]}')
 plt.legend()
 plt.grid(True)
-plt.savefig(os.path.join(results_path, f"nn_qsc_plot{params['nfp']}.png"))
+plt.savefig(os.path.join(results_path, f"nn_qsc_plot{params['nfp']}_model{params['model']}.png"))
 plt.show()

@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 import os
+import sys
 import joblib
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from tensorflow.keras.models import load_model
+from keras.models import load_model
+from keras.optimizers import Nadam, Adam, RMSprop, SGD
 from qsc import Qsc
 
 params = {'results_path': 'results',
@@ -24,6 +26,11 @@ def make_prediction(model, scaler, input_data):
     prediction = model.predict(input_data_scaled)
     return prediction
 
+# Set the number of field periods
+print('Usage: python use_nn_qsc.py [nfp], where nfp=2, 3 or 4. Defaults to nfp=2.')
+if len(sys.argv) > 1:
+    params['nfp'] = int(sys.argv[1])
+
 # Create the results directory
 this_path = str(Path(__file__).parent.resolve())
 general_results_path = os.path.join(this_path, params['results_path'])
@@ -41,11 +48,11 @@ model, scaler = load_saved_model_and_scaler(model_path, scaler_path)
 
 # Create list of input data
 data_array = df.iloc[params['data_location']].values
-n_axis_fourier_modes = int((len(data_array)-2-8)/2)
+n_axis_fourier_modes = int((len(data_array)-2-7)/2)
 rc = data_array[0:2*n_axis_fourier_modes:2]
 zs = data_array[1:2*n_axis_fourier_modes+1:2]
-eta_bar = data_array[-2-8]
-B2c = data_array[-1-8]
+eta_bar = data_array[-2-7]
+B2c = data_array[-1-7]
 print(f'rc = {rc}')
 print(f'zs = {zs}')
 print(f'eta_bar = {eta_bar}')
