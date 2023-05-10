@@ -1,0 +1,2 @@
+Average metric: 0.14065892696380616
+Average loss: 0.09101873785257339
