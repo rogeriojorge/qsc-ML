@@ -61,12 +61,12 @@ for filename in filenames:
         f'x{2*R0c.shape[1]}': B2c,
         f'y0': 0.33*np.abs(1/iota),
         f'y1': 0.09/r_singularity,
-        f'y2': -80/d2_volume_d_psi2,
-        f'y3': B20_variation/1.1,
-        f'y4': elongation/8,
-        f'y5': 0.3/L_grad_B,
-        f'y6': 0.3/L_grad_grad_B,
-        f'y7': 0.3/min_R0,
+        f'y2': B20_variation/1.1,
+        f'y3': elongation/8,
+        f'y4': 0.3/L_grad_B,
+        f'y5': 0.3/L_grad_grad_B,
+        f'y6': 0.3/min_R0,
+        # f'y7': -80/d2_volume_d_psi2,
     })
 
     df = pd.DataFrame(data)
