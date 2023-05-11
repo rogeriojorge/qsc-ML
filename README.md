@@ -2,6 +2,8 @@
 
 The `qsc-ML` repository aims to create a framework for applying various machine learning techniques to stellarator optimization. Stellarator optimization involves finding good surfaces and coils that can reproduce the magnetic field on those surfaces. This repository simplifies the optimization problem by employing the near-axis expansion formalism, which reduces the parameter space from hundreds to around a dozen.
 
+The code was created using Python3.11 but should be able to run with Python>=3.8.
+
 As of now the repository is able to perform the following tasks:
 
 - Loading near-axis (QSC) data
