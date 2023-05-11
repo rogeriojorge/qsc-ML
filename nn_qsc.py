@@ -10,7 +10,6 @@ from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
 from keras.layers import Dense, Dropout, BatchNormalization, LeakyReLU, Conv1D, MaxPooling1D, Flatten, Input
 from keras.optimizers import Adam
-from keras.losses import Huber
 from keras.callbacks import EarlyStopping
 from keras.regularizers import l2
 from keras.models import Sequential, Model
@@ -23,14 +22,14 @@ params = {
     'n_data_subset': 10000,
     'model': 'nn', # 'cnn' or 'nn'
     'optimizer': Adam,
-    'learning_rate': 0.005,
+    'learning_rate': 0.002,
     'epochs': 400,
-    'batch_size': 64,
-    'early_stopping_patience': 50,
+    'batch_size': 128,
+    'early_stopping_patience': 20,
     'test_size': 0.2,
     'random_state': 42,
-    'reg_strength': 1e-6,
-    'dropout_rate': 1e-2,
+    'reg_strength': 1e-4,
+    'dropout_rate': 5e-3,
     'validation_split': 0.2,
     'decay_steps': 1000,
     'decay_rate': 0.9,
@@ -38,7 +37,9 @@ params = {
 
 def build_neural_network(input_shape, output_shape, reg_strength=1e-7, dropout_rate=3e-3):
     model = Sequential([
-        Dense(512, activation='relu', input_shape=(input_shape,), kernel_regularizer=l2(reg_strength)),
+        Dense(1024, activation='relu', input_shape=(input_shape,), kernel_regularizer=l2(reg_strength)),
+        Dropout(dropout_rate),
+        Dense(512, activation='relu', kernel_regularizer=l2(reg_strength)),
         Dropout(dropout_rate),
         Dense(256, activation='relu', kernel_regularizer=l2(reg_strength)),
         Dropout(dropout_rate),
