@@ -24,13 +24,13 @@ params = {
     'model': 'nn', # 'cnn' or 'nn'
     'optimizer': Adam,
     'learning_rate': 0.005,
-    'epochs': 100,
+    'epochs': 400,
     'batch_size': 64,
     'early_stopping_patience': 50,
     'test_size': 0.2,
     'random_state': 42,
-    'reg_strength': 3e-7,
-    'dropout_rate': 3e-3,
+    'reg_strength': 1e-6,
+    'dropout_rate': 1e-2,
     'validation_split': 0.2,
     'decay_steps': 1000,
     'decay_rate': 0.9,
@@ -38,7 +38,9 @@ params = {
 
 def build_neural_network(input_shape, output_shape, reg_strength=1e-7, dropout_rate=3e-3):
     model = Sequential([
-        Dense(256, activation='relu', input_shape=(input_shape,), kernel_regularizer=l2(reg_strength)),
+        Dense(512, activation='relu', input_shape=(input_shape,), kernel_regularizer=l2(reg_strength)),
+        Dropout(dropout_rate),
+        Dense(256, activation='relu', kernel_regularizer=l2(reg_strength)),
         Dropout(dropout_rate),
         Dense(128, activation='relu', kernel_regularizer=l2(reg_strength)),
         Dropout(dropout_rate),
