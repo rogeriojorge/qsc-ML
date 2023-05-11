@@ -1,4 +1,3 @@
-bhtsne
 bokeh
 hdbscan
 joblib
