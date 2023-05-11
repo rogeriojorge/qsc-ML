@@ -22,11 +22,12 @@ from bokeh.resources import Resources
 from qsc import Qsc
 
 params = {
-    'perplexity': 45, # nfp2: 55, nfp3: 45, nfp4: 55
-    'min_cluster_size': 60,
-    'ntheta': 80,
-    'nphi': 120,
-    'ntheta_fourier': 22,
+    'perplexity': 55, # nfp2: 55, nfp3: 45, nfp4: 55
+    'min_cluster_size': 100,
+    'n_data_subset': 3000,
+    'ntheta': 60,
+    'nphi': 90,
+    'ntheta_fourier': 20,
     'radii_to_try_qsc': [0.12, 0.1, 0.08, 0.05, 0.03],
     'zoom_qsc': 1.3,
     'nphi_qsc': 151,
@@ -58,7 +59,7 @@ def create_3d_image(stel, ntheta, nphi, ntheta_fourier, radii_to_try_qsc, zoom_q
     cmap_plot = LightSource(azdeg=0, altdeg=10).shade(Bmag, cm.viridis, norm=Normalize(vmin=Bmag.min(), vmax=Bmag.max()))
     fig = plt.figure(figsize=(3, 3), dpi=80)
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(x_2D, y_2D, z_2D, facecolors=cmap_plot, rstride=1, cstride=1, antialiased=False, linewidth=0, alpha=0.9, shade=False)
+    ax.plot_surface(x_2D, y_2D, z_2D, facecolors=cmap_plot, rstride=1, cstride=1, antialiased=False, linewidth=0, alpha=0.8, shade=False)
     ax.set_box_aspect((np.ptp(x_2D), np.ptp(y_2D), np.ptp(z_2D)), zoom=zoom_qsc)
     ax.set_axis_off()
     buf = io.BytesIO()
@@ -78,10 +79,17 @@ this_path = str(Path(__file__).parent.resolve())
 os.chdir(this_path)
 filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.csv')
 df = pd.read_csv(filename)
+# Only use a subset of parameters
+for column in df.columns:
+    if df[column].dtype.byteorder == '>':
+        df[column] = df[column].values.byteswap().newbyteorder()
+df['ysum'] = df.loc[:, df.columns.str.startswith('y')].sum(axis=1)
+df = df.sort_values(by='ysum', ascending=True).head(params['n_data_subset'])
+df = df.drop(columns='ysum')
 df['y'] = df.filter(like='y', axis=1).sum(axis=1)
 rel_cols = [col for col in df.columns if col.startswith('x') or col == 'y']
 df_rel = df.loc[:, rel_cols]
-print(f'Loaded data from CSV file {filename} with shape {df_rel.shape}')
+print(f'Loaded data from CSV file {filename} now with shape {df_rel.shape}')
 general_results_path = os.path.join(this_path, params['results_path'])
 results_path = os.path.join(general_results_path, f'nfp{params["nfp"]}')
 os.makedirs(results_path, exist_ok=True)
@@ -94,13 +102,13 @@ X_tsne = tsne(X, dimensions=params['tsne_parameters'], perplexity=params['perple
 print('  Plotting t-SNE')
 if params['tsne_parameters']==2:
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 4))
-    scatter = ax.scatter(X_tsne[:, 0], X_tsne[:, 1], s=10, alpha=0.5, c=y, cmap='jet')
+    scatter = ax.scatter(X_tsne[:, 0], X_tsne[:, 1], s=10, alpha=0.25, c=y, cmap='jet')
     plt.xlabel('t-SNE 1')
     plt.ylabel('t-SNE 2')
 elif params['tsne_parameters']==3:
     fig = plt.figure(figsize=(7, 6))
     ax = fig.add_subplot(111, projection='3d')
-    scatter = ax.scatter(X_tsne[:, 0], X_tsne[:, 1], X_tsne[:, 2], s=10, alpha=0.5, c=y, cmap='jet')
+    scatter = ax.scatter(X_tsne[:, 0], X_tsne[:, 1], X_tsne[:, 2], s=10, alpha=0.25, c=y, cmap='jet')
     ax.set_xlabel('t-SNE 1')
     ax.set_ylabel('t-SNE 2')
     ax.set_zlabel('t-SNE 3')
@@ -129,8 +137,6 @@ if params['tsne_parameters']==2:
     p.add_tools(HoverTool(tooltips=[("Cluster", "@cluster"), ("Mean of y", "@y_mean")]))
     p.scatter('x', 'y', source=source, legend_field='cluster', color={'field': 'cluster', 'transform': color_mapper}, size=3, alpha=0.5)
     # p.scatter('x', 'y', source=source, color=params['highlight_color'], size='is_lowest_mean', line_color=params['highlight_color'])
-    p.xaxis.axis_label = 't-SNE 1'
-    p.yaxis.axis_label = 't-SNE 2'
     p.xaxis.axis_label = 't-SNE 1'
     p.yaxis.axis_label = 't-SNE 2'
     p.xaxis.axis_label_text_font_size = "18pt"

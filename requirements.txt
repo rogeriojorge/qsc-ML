@@ -1,6 +1,8 @@
 bhtsne
 bokeh
 hdbscan
+joblib
+keras
 matplotlib
 numpy
 pandas
@@ -9,5 +11,3 @@ plotly
 qsc
 scikit_learn
 scipy
-keras
-tensorflow-probability

@@ -13,6 +13,8 @@ raw_data_path = os.path.join(data_path, 'raw_data')
 os.makedirs(data_path, exist_ok=True)
 os.makedirs(raw_data_path, exist_ok=True)
 
+n_data_to_keep = 50000
+
 if len(sys.argv) == 1:
     nfps = [2,3,4]
     filenames  = [f'/Users/rogeriojorge//local/qsc/examples/qsc_out.random_scan_nfp{nfp}.nc' for nfp in nfps]
@@ -58,11 +60,11 @@ for filename in filenames:
         f'x{2*R0c.shape[1]-1}': eta_bar,
         f'x{2*R0c.shape[1]}': B2c,
         f'y0': 0.33*np.abs(1/iota),
-        f'y1': 0.09/r_singularity,
-        f'y2': B20_variation/1.1,
+        f'y1': 0.06/r_singularity,
+        f'y2': B20_variation,
         f'y3': elongation/8,
-        f'y4': 0.3/L_grad_B,
-        f'y5': 0.3/L_grad_grad_B,
+        f'y4': 0.6/L_grad_B,
+        f'y5': 0.6/L_grad_grad_B,
         f'y6': 0.3/min_R0,
         # f'y7': -80/d2_volume_d_psi2,
     })
@@ -78,8 +80,8 @@ for filename in filenames:
     # Create a new column that is the sum of all y columns
     df['ysum'] = df.loc[:, df.columns.str.startswith('y')].sum(axis=1)
 
-    # Sort by this new column and keep only the top 50000 rows
-    df = df.sort_values(by='ysum', ascending=True).head(50000)
+    # Sort by this new column and keep only the top n_data_to_keep rows
+    df = df.sort_values(by='ysum', ascending=True).head(n_data_to_keep)
 
     # Drop the 'ysum' column as it's no longer needed
     df = df.drop(columns='ysum')

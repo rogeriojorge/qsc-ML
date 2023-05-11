@@ -20,6 +20,7 @@ params = {
     'results_path': 'results',
     'data_path': 'data',
     'nfp': 2,
+    'n_data_subset': 10000,
     'model': 'nn', # 'cnn' or 'nn'
     'optimizer': Adam,
     'learning_rate': 0.005,
@@ -62,20 +63,10 @@ def build_cnn(input_shape, output_shape, reg_strength=1e-7, dropout_rate=3e-3):
     x = BatchNormalization()(x)
     x = Dropout(dropout_rate)(x)
 
-    # x = Conv1D(256, kernel_size=3, activation='relu', padding='same', kernel_regularizer=l2(reg_strength))(x)
-    # x = BatchNormalization()(x)
-    # x = Dropout(dropout_rate)(x)
-
-    # x = Conv1D(512, kernel_size=3, activation='relu', padding='same', kernel_regularizer=l2(reg_strength))(x)
-    # x = BatchNormalization()(x)
-    # x = Dropout(dropout_rate)(x)
-
     x = Flatten()(x)
 
     x = Dense(128, activation='relu', kernel_regularizer=l2(reg_strength))(x)
     x = Dropout(dropout_rate)(x)
-    # x = Dense(256, activation='relu', kernel_regularizer=l2(reg_strength))(x)
-    # x = Dropout(dropout_rate)(x)
 
     output_layer = Dense(output_shape, activation='linear')(x)
 
@@ -123,6 +114,14 @@ os.makedirs(results_path, exist_ok=True)
 
 filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.csv')
 df = pd.read_csv(filename)
+
+# Only use a subset of parameters
+for column in df.columns:
+    if df[column].dtype.byteorder == '>':
+        df[column] = df[column].values.byteswap().newbyteorder()
+df['ysum'] = df.loc[:, df.columns.str.startswith('y')].sum(axis=1)
+df = df.sort_values(by='ysum', ascending=True).head(params['n_data_subset'])
+df = df.drop(columns='ysum')
 
 x_columns = [col for col in df.columns if col.startswith('x')]
 y_columns = [col for col in df.columns if col.startswith('y')]

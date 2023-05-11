@@ -2,45 +2,72 @@
 
 The `qsc-ML` repository aims to create a framework for applying various machine learning techniques to stellarator optimization. Stellarator optimization involves finding good surfaces and coils that can reproduce the magnetic field on those surfaces. This repository simplifies the optimization problem by employing the near-axis expansion formalism, which reduces the parameter space from hundreds to around a dozen.
 
-The repository contains four main files:
+As of now the repository is able to perform the following tasks:
+
+- Loading near-axis (QSC) data
+- Dimensionality Reduction using t-SNE
+- Neural Network based Regression
+- Cluster Analysis
+- Model Application for Predictions
+
+The repository contains five main files:
 
 1. `load_qsc_data.py`: This script generates CSV files from the qsc code output. When run, it creates a folder called "data" with the CSV files.
 2. `tsne_qsc.py`: This script uses t-SNE and HDBSCAN to map the parameter space to a lower dimensional space and identify clusters. It also plots the resulting stellarators based on the pyQSC package.
 3. `nn_qsc.py`: This is a draft attempt to use neural networks to obtain a representation of the inverse problem (given a desired set of stellarator properties, find the corresponding near-axis parameters).
-4. `use_nn_qsc.py`: This is a draft attempt to use Bayesian neural networks to obtain a representation of the inverse problem (given a desired set of stellarator properties, find the corresponding near-axis parameters).
+4. `use_nn_qsc.py`: This is an example usage of the neural network trained with `nn_qsc.py` to find new stellarators.
+5. `clustering_qsc.py`: Use clustering methods to analyze the data.
 
-# 1. load_qsc_data.py
+## Table of Contents
 
-`load_qsc_data.py` is a Python script that converts the Quasisymmetric Stellarator Configurations (QSC) output data from NetCDF format to CSV files. The script also organizes the data in a structured format that can be easily loaded into other scripts for further analysis and processing.
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Loading Data](#loading-data)
+  - [Dimensionality Reduction](#dimensionality-reduction)
+  - [Neural Network Regression](#neural-network-regression)
+  - [Applying the Neural Network Model](#applying-the-neural-network-model)
+  - [Cluster Analysis](#cluster-analysis)
+- [Contributing](#contributing)
+- [Acknowledgements](#acknowledgements)
 
-## Usage
+---
+
+## Installation
+
+Clone the repository and install the dependencies.
 
 ```bash
-python load_qsc_data.py [filename]
+git clone https://github.com/rogeriojorge/qsc-ML.git
+cd qsc-ML
+pip install -r requirements.txt
 ```
 
-Where `filename` is the path to the QSC output file in NetCDF format. The script also supports processing multiple QSC output files at once. If no filename is provided, the script will default to process the following files:
-
-- `qsc_out.random_scan_nfp2.nc`
-- `qsc_out.random_scan_nfp3.nc`
-- `qsc_out.random_scan_nfp4.nc`
+---
 
 ## Dependencies
 
-The script requires the following packages:
+The script requires the packages that are listed in the `requirements.txt` file.
+To install them all, run the following command in the root folder of the repository
+```bash
+pip install -r requirements.txt
+```
 
-- numpy
-- pandas
-- pathlib
-- scipy
-- shutil
+---
 
-## Output
 
-The script creates a `data` directory with two subdirectories:
+## Usage
 
-1. `raw_data`: This directory contains copies of the input QSC output files.
-2. `data`: This directory contains the generated CSV files.
+### Loading Data
+
+If you want to use new data, you can use the script `load_qsc_data.py` to load the data. Otherwise, you can use the data that is already present in the repository.
+This script will load a CSV file containing the dataset and convert it into a pandas dataframe. It also takes care of any big-endian to little-endian conversion.
+
+```bash
+python load_qsc_data.py
+```
+
+The data must come from an output of the `qsc` code. Link: https://github.com/landreman/qsc
+The script creates a `data` directory with the subdirectory `raw_data`, which contains copies of the input QSC output files, as well as the generated CSV files.
 
 For each input file, the script generates a corresponding CSV file with the same basename, i.e., if the input file is `qsc_out.random_scan_nfp2.nc`, the output CSV file will be named `qsc_out.random_scan_nfp2.csv`.
 
@@ -48,118 +75,83 @@ The CSV files contain the following columns:
 
 - `x1`, `x2`, ..., `xN`: The input parameters of the QSC, including the R0c and Z0s values.
 - `y0`: The inverse rotational transform (scaled by 0.33).
-- `y1`: The inverse distance to the magnetic axis singularity (scaled by 0.09).
-- `y2`: The negative inverse second derivative of the volume with respect to the magnetic flux (scaled by -80).
-- `y3`: The B20 variation (scaled by 1.1).
-- `y4`: The elongation (scaled by 8).
-- `y5`: The inverse magnetic field gradient length (scaled by 0.3).
-- `y6`: The inverse second magnetic field gradient length (scaled by 0.3).
-- `y7`: The inverse minimum major radius (scaled by 0.3).
+- `y1`: The inverse distance to the magnetic axis singularity (scaled by 0.06).
+- `y2`: The B20 variation.
+- `y3`: The elongation (scaled by 8).
+- `y4`: The inverse magnetic field gradient length (scaled by 0.6).
+- `y5`: The inverse second magnetic field gradient length (scaled by 0.6).
+- `y6`: The inverse minimum major radius (scaled by 0.3).
 
-## Example
 
-To convert a QSC output file `qsc_out.example.nc` to a CSV file, run the following command:
+### Dimensionality Reduction
 
-```bash
-python load_qsc_data.py qsc_out.example.nc
-```
-
-The script will generate a CSV file named `qsc_out.example.csv` in the `data` directory.
-
-# 2. tsne_qsc.py
-
-`tsne_qsc.py` is a Python script that performs t-Distributed Stochastic Neighbor Embedding (t-SNE) and HDBSCAN clustering on data generated from Quasisymmetric Stellarator Configurations (QSC). The script also generates and saves 2D and 3D visualizations of the clustering results.
-
-### Usage
+The `tsne_qsc.py` script is used for visualizing high-dimensional data. It uses t-SNE to reduce the dimensionality of the data and visualize it in a 2D or 3D plot.
 
 ```bash
-python tsne_qsc.py [nfp] [dimensionality]
+python tsne_qsc.py
 ```
 
-Where `nfp` is the number of field periods (2, 3, or 4) and `dimensionality` is the number of dimensions for t-SNE (2 or 3). The script defaults to `nfp=2` and `dimensionality=2`.
+The tsne_qsc.py script performs dimensionality reduction on the QSC data. High-dimensional data is challenging to visualize and understand. This script uses the t-distributed Stochastic Neighbor Embedding (t-SNE) algorithm to reduce the dimensionality of the data down to two or three dimensions.
 
-### Dependencies
+t-SNE is a non-linear dimensionality reduction technique that is particularly well-suited for embedding high-dimensional data into a space of two or three dimensions, which can then be visualized in a scatter plot. It maps multi-dimensional data to two or more dimensions suitable for human observation.
 
-The script requires the following packages:
+This script also uses the HDBSCAN (Hierarchical Density-Based Spatial Clustering of Applications with Noise) algorithm to identify clusters in the reduced dimensionality data. The identified clusters are then visualized using the pyQSC package.
 
-- numpy
-- pandas
-- pathlib
-- matplotlib
-- mpl_toolkits
-- PIL (Pillow)
-- bhtsne
-- sklearn
-- hdbscan
-- bokeh
-- qsc
+The output of this script is a visualization of the data in reduced dimensions, with different clusters shown in different colors. This can help in understanding the underlying structure and patterns in the data.
 
-### Configuration
+### Neural Network Regression
 
-You can customize various parameters for t-SNE, HDBSCAN, and QSC by modifying the `params` dictionary in the script.
-
-### Output
-
-The script saves the following files in the `results` directory:
-
-- t-SNE scatter plot image (`tse_nfp{nfp}_perplexity{perplexity}_{tsne_parameters}params.png`)
-- HDBSCAN clustering Bokeh plot (`bokeh_tse_stellarators_nfp{nfp}_perplexity{perplexity}.html` and `bokeh_tse_stellarators_nfp{nfp}_perplexity{perplexity}.png`) for 2D t-SNE
-- HDBSCAN clustering Plotly plot (`plotly_tse_stellarators_nfp{nfp}_perplexity{perplexity}_3parameters.html` and `plotly_tse_stellarators_nfp{nfp}_perplexity{perplexity}_3parameters.png`) for 3D t-SNE
-
-# 3. nn_qsc.py
-
-The `nn_qsc.py` script trains a neural network to solve the inverse problem for Quasisymmetric Stellarators. The neural network is implemented using TensorFlow and Keras. The main features of the script are:
-
-- Loading data from a CSV file containing the random scans of the Quasisymmetric Stellarators.
-- Preprocessing the data by splitting it into training and test sets, and scaling the input data.
-- Building and training a neural network model using the preprocessed data.
-- Evaluating the performance of the trained model on the test data.
-- Saving the trained model and the scaler for later use.
-- Generating plots of the true values vs predicted values to visualize the model's performance.
-
-### Usage
-
-To run the `nn_qsc.py` script, simply execute the following command in the terminal:
+Use the `nn_qsc.py` script to create a neural network model using TensorFlow and Keras. The script will also train this model on your data and save it for future use.
 
 ```bash
-python nn_qsc.py [nfp]
+python nn_qsc.py
 ```
 
-where `nfp` is the number of field periods (2, 3, or 4). The default value is 2.
+The nn_qsc.py script is used to create and train a neural network model on the QSC data. Neural networks are a powerful tool for regression and classification problems, and in this case, they are used for regression.
 
-# 4. use_nn_qsc.py
+The script first prepares the data by standardizing the features (subtracting the mean and dividing by the standard deviation). It then creates a neural network model using the TensorFlow and Keras libraries. The model is a fully connected (dense) network, and the architecture (number of layers and neurons per layer) can be adjusted in the script.
 
-The `use_nn_qsc.py` script demonstrates how to use the trained neural network model from the `nn_qsc.py` script to make predictions. The main features of the script are:
+The model is then trained on the prepared data. Training a neural network involves feeding the data into the network, comparing the network's prediction with the true output, and updating the network's weights based on the difference (the error). This process is repeated multiple times (epochs), and each time the model's performance should improve.
 
-- Loading the saved neural network model and scaler from the results directory.
-- Loading data from a CSV file containing the random scans of the Quasisymmetric Stellarators.
-- Preparing input data for the neural network by selecting specific data points from the loaded data.
-- Using the loaded model and scaler to make a prediction based on the prepared input data.
-- Comparing the predicted values with the actual values and calculating the error.
-- Visualizing the stellarator boundary using the Qsc Python library.
+The output of this script is the trained neural network model, which is saved to a file. This model can then be used to make predictions on new data.
 
-### Usage
+### Applying the Neural Network Model
 
-To run the `use_nn_qsc.py` script, execute the following command in the terminal:
+The `use_nn_qsc.py` script is used to apply the trained neural network model on new data. The script will load the model and the new data, make predictions, and save these predictions in a CSV file.
 
 ```bash
-python use_nn_qsc.py [nfp]
+python use_nn_qsc.py
 ```
 
-Note that this script uses the trained model and scaler from the `nn_qsc.py` script, so make sure to run `nn_qsc.py` first to generate the necessary files.
+The use_nn_qsc.py script is used to apply the trained neural network model to new data. The script loads the model and the new data, uses the model to make predictions on the new data, and saves these predictions to a CSV file.
 
-## Dependencies
+The predictions made by the model can be used in various ways. For example, they can be used to identify promising areas of the parameter space to explore in more detail, to identify outliers or anomalies in the data, or to simulate the behavior of the system under different conditions.
 
-The `nn_qsc.py` and `use_nn_qsc.py` scripts require the following packages:
+### Cluster Analysis
 
-- numpy
-- pandas
-- pathlib
-- matplotlib
-- scikit-learn
-- tensorflow
-- keras
-- qsc
+The `clustering_qsc.py` script uses K-Means clustering and semi-supervised learning to analyze the data. It also determines the optimal number of clusters and saves the models and predictions for future use.
+
+```bash
+python clustering_qsc.py
+```
+
+The clustering_qsc.py script is responsible for conducting an unsupervised learning task on the data, namely clustering. The purpose of this step is to discover inherent groupings within the data which may represent different classes or types of stellarator configurations.
+
+This script uses the K-Means algorithm, a popular clustering technique that partitions the data into K distinct, non-overlapping clusters. Each data point belongs to the cluster with the nearest mean value. The script also utilizes a method for determining the optimal number of clusters to avoid overfitting or underfitting the data.
+
+Moreover, this script employs semi-supervised learning techniques. Semi-supervised learning is an approach to machine learning that combines a small amount of labeled data with a large amount of unlabeled data during training. This can be highly valuable in situations where labeling data is costly or time-consuming.
+
+After the clustering, the script saves the models and the prediction results for each data point, which identifies the cluster it belongs to.
+
+This script offers a way to understand the high-level structure of the dataset and to identify potential trends or patterns. It can also help in identifying outlier data points that do not fit well into any of the identified clusters.
+
+---
+
+## Contributing
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+---
 
 ## Acknowledgements
 
