@@ -24,13 +24,13 @@ params = {
     'model': 'nn', # 'cnn' or 'nn'
     'optimizer': Adam,
     'learning_rate': 0.005,
-    'epochs': 200,
-    'batch_size': 256,
+    'epochs': 100,
+    'batch_size': 64,
     'early_stopping_patience': 20,
     'test_size': 0.2,
     'random_state': 42,
     'reg_strength': 1e-7,
-    'dropout_rate': 3e-3,
+    'dropout_rate': 1e-3,
     'validation_split': 0.2,
     'decay_steps': 1000,
     'decay_rate': 0.9,
@@ -38,9 +38,7 @@ params = {
 
 def build_neural_network(input_shape, output_shape, reg_strength=1e-7, dropout_rate=3e-3):
     model = Sequential([
-        Dense(512, activation='relu', input_shape=(input_shape,), kernel_regularizer=l2(reg_strength)),
-        Dropout(dropout_rate),
-        Dense(256, activation='relu', kernel_regularizer=l2(reg_strength)),
+        Dense(256, activation='relu', input_shape=(input_shape,), kernel_regularizer=l2(reg_strength)),
         Dropout(dropout_rate),
         Dense(128, activation='relu', kernel_regularizer=l2(reg_strength)),
         Dropout(dropout_rate),
@@ -76,6 +74,9 @@ def preprocess_data(X_train, X_test, Y_train, Y_test, params):
     scaler_x = StandardScaler().fit(X_train)
     X_train = scaler_x.transform(X_train)
     X_test = scaler_x.transform(X_test)
+    scaler_y = StandardScaler().fit(Y_train)
+    Y_train = scaler_y.transform(Y_train)
+    Y_test = scaler_y.transform(Y_test)
 
     if params['model'] == 'cnn':
         X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
@@ -86,7 +87,7 @@ def preprocess_data(X_train, X_test, Y_train, Y_test, params):
 
     output_shape = Y_train.shape[1]
 
-    return X_train, X_test, input_shape, output_shape, scaler_x
+    return X_train, X_test, input_shape, output_shape, scaler_x, Y_train, Y_test, scaler_y
 
 def create_dataset(X_train, Y_train, params):
     train_dataset = tf.data.Dataset.from_tensor_slices((X_train, Y_train))
@@ -132,7 +133,7 @@ X = df[y_columns].values
 
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=params['test_size'], random_state=params['random_state'])
 
-X_train, X_test, input_shape, output_shape, scaler_x = preprocess_data(X_train, X_test, Y_train, Y_test, params)
+X_train, X_test, input_shape, output_shape, scaler_x, Y_train, Y_test, scaler_y = preprocess_data(X_train, X_test, Y_train, Y_test, params)
 
 if params['model'] == 'cnn':
     model = build_cnn(input_shape, output_shape, reg_strength=params['reg_strength'], dropout_rate=params['dropout_rate'])
@@ -161,6 +162,7 @@ predictions = model(X_test)
 # Save the model and scaler
 model.save(os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_model{params['model']}.h5"))
 joblib.dump(scaler_x, os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_x.pkl"))
+joblib.dump(scaler_y, os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_y.pkl"))
 print(f"Model and scaler saved in {results_path}")
 
 plt.figure(figsize=(8, 8))

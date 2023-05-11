@@ -24,10 +24,11 @@ params = {'results_path': 'results',
           'r_plot': 0.1,
           }
 
-def load_saved_model_and_scaler(model_path, scaler_path):
+def load_saved_model_and_scaler(model_path, scaler_x_path, scaler_y_path):
     model = load_model(model_path)
-    scaler = joblib.load(scaler_path)
-    return model, scaler
+    scaler_x = joblib.load(scaler_x_path)
+    scaler_y = joblib.load(scaler_y_path)
+    return model, scaler_x, scaler_y
 
 def make_prediction(model, scaler, input_data):
     input_data = np.array(input_data)
@@ -66,8 +67,9 @@ df = df.sort_values(by='y5', key=df['y4'].add, ascending=True)
 
 # Load the model and scaler
 model_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_model{params['model']}.h5")
-scaler_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_x.pkl")
-model, scaler = load_saved_model_and_scaler(model_path, scaler_path)
+scaler_x_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_x.pkl")
+scaler_y_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_y.pkl")
+model, scaler_x, scaler_y = load_saved_model_and_scaler(model_path, scaler_x_path, scaler_y_path)
 
 # Create list of input data
 col_names = df.columns.tolist()
@@ -81,7 +83,7 @@ input_Y_data = data_array[2*n_axis_fourier_modes+2:]
 
 # Make the prediction
 print('Making prediction...')
-prediction = make_prediction(model, scaler, input_Y_data)[0]
+prediction = make_prediction(model, scaler_x, input_Y_data)[0]
 print(f'  Error (linalg.norm) from the prediction: {np.linalg.norm(prediction-input_X_data)}')
 
 # Print the results
