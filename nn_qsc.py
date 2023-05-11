@@ -26,11 +26,11 @@ params = {
     'learning_rate': 0.005,
     'epochs': 100,
     'batch_size': 64,
-    'early_stopping_patience': 20,
+    'early_stopping_patience': 50,
     'test_size': 0.2,
     'random_state': 42,
-    'reg_strength': 1e-7,
-    'dropout_rate': 1e-3,
+    'reg_strength': 3e-7,
+    'dropout_rate': 3e-3,
     'validation_split': 0.2,
     'decay_steps': 1000,
     'decay_rate': 0.9,
@@ -144,7 +144,7 @@ learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(
     initial_learning_rate=params['learning_rate'], decay_steps=params['decay_steps'], decay_rate=params['decay_rate']
 )
 
-model.compile(optimizer=params['optimizer'](learning_rate=learning_rate), loss=Huber(), metrics=['mae'])
+model.compile(optimizer=params['optimizer'](learning_rate=learning_rate), loss='mae', metrics=['mae'])
 
 early_stopping = EarlyStopping(monitor='val_loss', patience=params['early_stopping_patience'], restore_best_weights=True)
 
