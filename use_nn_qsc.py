@@ -12,7 +12,8 @@ from qsc import Qsc
 params = {'results_path': 'results',
           'data_path': 'data',
           'nfp': 2,
-          'data_location': 150
+          'data_location': 1,
+          'model': 'cnn', # 'cnn' or 'nn'
           }
 
 def load_saved_model_and_scaler(model_path, scaler_path):
@@ -42,17 +43,20 @@ filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nf
 df = pd.read_csv(filename)
 
 # Load the model and scaler
-model_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}.h5")
-scaler_path = os.path.join(results_path, f"nn_qsc{params['nfp']}.pkl")
+model_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_model{params['model']}.h5")
+scaler_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_x.pkl")
 model, scaler = load_saved_model_and_scaler(model_path, scaler_path)
 
 # Create list of input data
+col_names = df.columns.tolist()
+x_cols = [col for col in col_names if col.startswith('x')]
+y_cols = [col for col in col_names if col.startswith('y')]
+n_axis_fourier_modes = int((len(x_cols)-2)/2)
 data_array = df.iloc[params['data_location']].values
-n_axis_fourier_modes = int((len(data_array)-2-7)/2)
 rc = data_array[0:2*n_axis_fourier_modes:2]
 zs = data_array[1:2*n_axis_fourier_modes+1:2]
-eta_bar = data_array[-2-7]
-B2c = data_array[-1-7]
+eta_bar = data_array[n_axis_fourier_modes+1]
+B2c = data_array[n_axis_fourier_modes+2]
 print(f'rc = {rc}')
 print(f'zs = {zs}')
 print(f'eta_bar = {eta_bar}')
