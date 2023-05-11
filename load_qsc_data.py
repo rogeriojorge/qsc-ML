@@ -51,8 +51,6 @@ for filename in filenames:
 
     # Add each column of R0c and Z0s to the data dictionary
     for i in range(1,R0c.shape[1]): #assume R0c0=1 and Z0s0=0
-        # data[f'R0c{i+1}'] = R0c[:, i]
-        # data[f'Z0s{i+1}'] = Z0s[:, i]
         data[f'x{2*i-1}'] = R0c[:, i]
         data[f'x{2*i}'] = Z0s[:, i]
 
@@ -70,6 +68,21 @@ for filename in filenames:
     })
 
     df = pd.DataFrame(data)
+
+    # Ensure data is in the correct byte order
+    for column in df.columns:
+        if df[column].dtype.byteorder == '>':
+            df[column] = df[column].values.byteswap().newbyteorder()
+
+
+    # Create a new column that is the sum of all y columns
+    df['ysum'] = df.loc[:, df.columns.str.startswith('y')].sum(axis=1)
+
+    # Sort by this new column and keep only the top 50000 rows
+    df = df.sort_values(by='ysum', ascending=True).head(50000)
+
+    # Drop the 'ysum' column as it's no longer needed
+    df = df.drop(columns='ysum')
 
     # Save the DataFrame to a CSV file
     csv_filename = os.path.join(data_path, str(Path(filename).stem) + '.csv')

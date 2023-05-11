@@ -6,14 +6,13 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from keras.models import load_model
-from keras.optimizers import Nadam, Adam, RMSprop, SGD
 from qsc import Qsc
 
 params = {'results_path': 'results',
           'data_path': 'data',
           'nfp': 2,
           'data_location': 1,
-          'model': 'cnn', # 'cnn' or 'nn'
+          'model': 'nn', # 'cnn' or 'nn'
           }
 
 def load_saved_model_and_scaler(model_path, scaler_path):
@@ -27,10 +26,18 @@ def make_prediction(model, scaler, input_data):
     prediction = model.predict(input_data_scaled)
     return prediction
 
-# Set the number of field periods
-print('Usage: python use_nn_qsc.py [nfp], where nfp=2, 3 or 4. Defaults to nfp=2.')
+# Set the number of field periods and model type
+print('Usage: python use_nn_qsc.py [nfp] [model], where nfp=2, 3 or 4 and model=nn or cnn. Defaults to nfp=2 and model=nn.')
 if len(sys.argv) > 1:
-    params['nfp'] = int(sys.argv[1])
+    if sys.argv[1] in ['2','3','4']:
+        params['nfp'] = int(sys.argv[1])
+    else:
+        raise ValueError('NFP must be either 2, 3 or 4')
+    if len(sys.argv) > 2:
+        if sys.argv[2] in ['nn', 'cnn']:
+            params['model'] = sys.argv[2]
+        else:
+            raise ValueError('Model must be either "nn" or "cnn"')
 
 # Create the results directory
 this_path = str(Path(__file__).parent.resolve())
