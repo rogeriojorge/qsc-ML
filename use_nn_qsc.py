@@ -83,7 +83,8 @@ input_Y_data = data_array[2*n_axis_fourier_modes+2:]
 
 # Make the prediction
 print('Making prediction...')
-prediction = make_prediction(model, scaler_x, input_Y_data)[0]
+prediction_scaled = make_prediction(model, scaler_x, input_Y_data)
+prediction = scaler_y.inverse_transform(prediction_scaled)[0]
 print(f'  Error (linalg.norm) from the prediction: {np.linalg.norm(prediction-input_X_data)}')
 
 # Print the results
