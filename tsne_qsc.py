@@ -77,8 +77,10 @@ def create_3d_image(stel, ntheta, nphi, ntheta_fourier, radii_to_try_qsc, zoom_q
 
 this_path = str(Path(__file__).parent.resolve())
 os.chdir(this_path)
-filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.csv')
-df = pd.read_csv(filename)
+# filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.csv')
+# df = pd.read_csv(filename)
+filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.parquet')
+df = pd.read_parquet(filename)
 # Only use a subset of parameters
 for column in df.columns:
     if df[column].dtype.byteorder == '>':

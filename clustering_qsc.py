@@ -34,8 +34,10 @@ general_results_path = os.path.join(this_path, params['results_path'])
 results_path = os.path.join(general_results_path, f'nfp{params["nfp"]}')
 os.makedirs(results_path, exist_ok=True)
 os.chdir(this_path)
-filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.csv')
-df = pd.read_csv(filename)
+# filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.csv')
+# df = pd.read_csv(filename)
+filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.parquet')
+df = pd.read_parquet(filename)
 # Only use a subset of parameters
 for column in df.columns:
     if df[column].dtype.byteorder == '>':
