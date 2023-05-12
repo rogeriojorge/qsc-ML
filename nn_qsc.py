@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
 from keras.layers import Dense, Dropout, BatchNormalization, LeakyReLU, Conv1D, MaxPooling1D, Flatten, Input
 from keras.optimizers import Adam
-from keras.callbacks import EarlyStopping
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras.regularizers import l2
 from keras.models import Sequential, Model
 import joblib
@@ -19,17 +19,17 @@ params = {
     'results_path': 'results',
     'data_path': 'data',
     'nfp': 2,
-    'n_data_subset': 10000,
+    'n_data_subset': 14000,
     'model': 'nn', # 'cnn' or 'nn'
     'optimizer': Adam,
-    'learning_rate': 0.002,
+    'learning_rate': 0.001,
     'epochs': 400,
     'batch_size': 128,
-    'early_stopping_patience': 20,
+    'early_stopping_patience': 10,
     'test_size': 0.2,
     'random_state': 42,
-    'reg_strength': 1e-4,
-    'dropout_rate': 5e-3,
+    'reg_strength': 2e-4,
+    'dropout_rate': 5e-4,
     'validation_split': 0.2,
     'decay_steps': 1000,
     'decay_rate': 0.9,
@@ -38,16 +38,22 @@ params = {
 def build_neural_network(input_shape, output_shape, reg_strength=1e-7, dropout_rate=3e-3):
     model = Sequential([
         Dense(1024, activation='relu', input_shape=(input_shape,), kernel_regularizer=l2(reg_strength)),
+        # BatchNormalization(),
         Dropout(dropout_rate),
         Dense(512, activation='relu', kernel_regularizer=l2(reg_strength)),
+        # BatchNormalization(),
         Dropout(dropout_rate),
         Dense(256, activation='relu', kernel_regularizer=l2(reg_strength)),
+        # BatchNormalization(),
         Dropout(dropout_rate),
         Dense(128, activation='relu', kernel_regularizer=l2(reg_strength)),
+        # BatchNormalization(),
         Dropout(dropout_rate),
         Dense(64, activation='relu', kernel_regularizer=l2(reg_strength)),
+        # BatchNormalization(),
         Dropout(dropout_rate),
         Dense(32, activation='relu', kernel_regularizer=l2(reg_strength)),
+        # BatchNormalization(),
         Dropout(dropout_rate),
         Dense(output_shape)
     ])
@@ -154,7 +160,8 @@ early_stopping = EarlyStopping(monitor='val_loss', patience=params['early_stoppi
 train_dataset = create_dataset(X_train, Y_train, params)
 validation_dataset = create_dataset(X_test, Y_test, params)
 
-model.fit(train_dataset, epochs=params['epochs'], validation_data=validation_dataset, validation_split=params['validation_split'], verbose=1, callbacks=[early_stopping])
+model.fit(train_dataset, epochs=params['epochs'], validation_data=validation_dataset,
+          validation_split=params['validation_split'], verbose=1, callbacks=[early_stopping])
 
 loss, mae = model.evaluate(X_test, Y_test, verbose=0)
 print(f"Test MAE: {mae}")

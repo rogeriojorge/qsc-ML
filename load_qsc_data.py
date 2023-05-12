@@ -86,8 +86,13 @@ for filename in filenames:
     # Drop the 'ysum' column as it's no longer needed
     df = df.drop(columns='ysum')
 
-    # Save the DataFrame to a CSV file
-    csv_filename = os.path.join(data_path, str(Path(filename).stem) + '.csv')
-    df.to_csv(csv_filename, index=False)
+    # # Save the DataFrame to a CSV file
+    # csv_filename = os.path.join(data_path, str(Path(filename).stem) + '.csv')
+    # df.to_csv(csv_filename, index=False)
+    # print(f"CSV file created: {csv_filename}")
 
-    print(f"CSV file created: {csv_filename}")
+    # Save the DataFrame to a Parquet file
+    parquet_filename = os.path.join(data_path, str(Path(filename).stem) + '.parquet')
+    df.to_parquet(parquet_filename, compression='gzip', index=False)
+
+    print(f"Parquet file created: {parquet_filename}")
