@@ -66,6 +66,7 @@ df = pd.read_parquet(filename)
 
 # Sort the data by L_gradB and L_gradgradB
 df = df.sort_values(by='y5', key=df['y4'].add, ascending=True)
+# df = df.sort_values(by='y0', key=df['y1'].add, ascending=True)
 
 # Load the model and scaler
 model_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_model{params['model']}.h5")
