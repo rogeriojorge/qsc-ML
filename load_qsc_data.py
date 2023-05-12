@@ -13,7 +13,7 @@ raw_data_path = os.path.join(data_path, 'raw_data')
 os.makedirs(data_path, exist_ok=True)
 os.makedirs(raw_data_path, exist_ok=True)
 
-n_data_to_keep = 50000
+n_data_to_keep = 11000
 
 if len(sys.argv) == 1:
     nfps = [2,3,4]
