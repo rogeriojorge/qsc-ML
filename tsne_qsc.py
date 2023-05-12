@@ -193,8 +193,15 @@ elif params['tsne_parameters']==3:
         selected_indices = np.where((labels == label) & (y == min(y[labels == label])))[0]
         x_selected = df.loc[selected_indices, [col for col in df.columns if col.startswith('x')]]
         x_values = x_selected.filter(like='x', axis=1).iloc[:, :10].values.flatten()
-        rc, zs = np.insert(x_values[::2], 0, 1), np.insert(x_values[1::2], 0, 0)
-        etabar, B2c = x_selected.loc[:, 'x11'].values[0], x_selected.loc[:, 'x12'].values[0]
+
+        col_names = df.columns.tolist()
+        x_cols = [col for col in col_names if col.startswith('x')]
+        n_axis_fourier_modes = int((len(x_cols)-2)/2)
+        rc = np.append([1],x_values[0:2*n_axis_fourier_modes:2])
+        zs = np.append([0],x_values[1:2*n_axis_fourier_modes+1:2])
+        etabar = x_values[2*n_axis_fourier_modes]
+        B2c = x_values[2*n_axis_fourier_modes+1]
+
         stel = Qsc(rc=rc.tolist(), zs=zs.tolist(), nfp=params['nfp'], etabar=etabar, order='r3', B2c=B2c, nphi=params['nphi_qsc'])
         mean_x, mean_y, mean_z = np.mean(X_tsne[labels == label, 0]), np.mean(X_tsne[labels == label, 1]), np.mean(X_tsne[labels == label, 2])
         try:

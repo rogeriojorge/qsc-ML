@@ -14,7 +14,7 @@ os.makedirs(data_path, exist_ok=True)
 os.makedirs(raw_data_path, exist_ok=True)
 
 save_as_float32 = True
-n_data_to_keep = 650000
+n_data_to_keep = 700000
 
 if len(sys.argv) == 1:
     nfps = [2,3,4]
