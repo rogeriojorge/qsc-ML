@@ -10,8 +10,7 @@ from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
 from keras.layers import Dense, Dropout, BatchNormalization, LeakyReLU, Conv1D, MaxPooling1D, Flatten, Input
 from keras.optimizers import Adam
-from keras.losses import Huber
-from keras.callbacks import EarlyStopping
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras.regularizers import l2
 from keras.models import Sequential, Model
 import joblib
@@ -20,17 +19,17 @@ params = {
     'results_path': 'results',
     'data_path': 'data',
     'nfp': 2,
-    'n_data_subset': 10000,
+    'n_data_subset': 800000,
     'model': 'nn', # 'cnn' or 'nn'
     'optimizer': Adam,
-    'learning_rate': 0.005,
-    'epochs': 400,
-    'batch_size': 64,
-    'early_stopping_patience': 50,
+    'learning_rate': 0.003,
+    'epochs': 500,
+    'batch_size': 256,
+    'early_stopping_patience': 10,
     'test_size': 0.2,
     'random_state': 42,
-    'reg_strength': 1e-6,
-    'dropout_rate': 1e-2,
+    'reg_strength': 1e-5,
+    'dropout_rate': 5e-4,
     'validation_split': 0.2,
     'decay_steps': 1000,
     'decay_rate': 0.9,
@@ -38,15 +37,23 @@ params = {
 
 def build_neural_network(input_shape, output_shape, reg_strength=1e-7, dropout_rate=3e-3):
     model = Sequential([
-        Dense(512, activation='relu', input_shape=(input_shape,), kernel_regularizer=l2(reg_strength)),
-        Dropout(dropout_rate),
-        Dense(256, activation='relu', kernel_regularizer=l2(reg_strength)),
+        Dense(256, activation='relu', input_shape=(input_shape,), kernel_regularizer=l2(reg_strength)),
+        BatchNormalization(),
         Dropout(dropout_rate),
         Dense(128, activation='relu', kernel_regularizer=l2(reg_strength)),
+        BatchNormalization(),
         Dropout(dropout_rate),
         Dense(64, activation='relu', kernel_regularizer=l2(reg_strength)),
+        BatchNormalization(),
         Dropout(dropout_rate),
         Dense(32, activation='relu', kernel_regularizer=l2(reg_strength)),
+        BatchNormalization(),
+        Dropout(dropout_rate),
+        Dense(16, activation='relu', kernel_regularizer=l2(reg_strength)),
+        BatchNormalization(),
+        Dropout(dropout_rate),
+        Dense(8, activation='relu', kernel_regularizer=l2(reg_strength)),
+        BatchNormalization(),
         Dropout(dropout_rate),
         Dense(output_shape)
     ])
@@ -115,8 +122,10 @@ general_results_path = os.path.join(this_path, params['results_path'])
 results_path = os.path.join(general_results_path, f'nfp{params["nfp"]}')
 os.makedirs(results_path, exist_ok=True)
 
-filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.csv')
-df = pd.read_csv(filename)
+# filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.csv')
+# df = pd.read_csv(filename)
+filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.parquet')
+df = pd.read_parquet(filename)
 
 # Only use a subset of parameters
 for column in df.columns:
@@ -153,7 +162,8 @@ early_stopping = EarlyStopping(monitor='val_loss', patience=params['early_stoppi
 train_dataset = create_dataset(X_train, Y_train, params)
 validation_dataset = create_dataset(X_test, Y_test, params)
 
-model.fit(train_dataset, epochs=params['epochs'], validation_data=validation_dataset, validation_split=params['validation_split'], verbose=1, callbacks=[early_stopping])
+history = model.fit(train_dataset, epochs=params['epochs'], validation_data=validation_dataset,
+          validation_split=params['validation_split'], verbose=1, callbacks=[early_stopping])
 
 loss, mae = model.evaluate(X_test, Y_test, verbose=0)
 print(f"Test MAE: {mae}")
@@ -177,5 +187,15 @@ plt.ylabel('Predicted values')
 plt.title(f'nfp={params["nfp"]}, model={params["model"]}, metric={mae:.3f}, loss={loss:.3f}, epochs={params["epochs"]}, batch_size={params["batch_size"]}')
 plt.legend()
 plt.grid(True)
-plt.savefig(os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_model{params['model']}.png"))
+plt.savefig(os.path.join(results_path, f"nn_predioctions_qsc_nfp{params['nfp']}_model{params['model']}.png"))
+
+plt.figure(figsize=(8, 8))
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss']) 
+plt.title('Model loss') 
+plt.ylabel('Loss') 
+plt.xlabel('Epoch') 
+plt.legend(['Train', 'Test'], loc='upper left') 
+plt.savefig(os.path.join(results_path, f"nn_history_qsc_nfp{params['nfp']}_model{params['model']}.png"))
+
 plt.show()
