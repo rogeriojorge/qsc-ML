@@ -59,8 +59,10 @@ results_path = os.path.join(general_results_path, f'nfp{params["nfp"]}')
 os.makedirs(results_path, exist_ok=True)
 
 # Load the data
-filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.csv')
-df = pd.read_csv(filename)
+# filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.csv')
+# df = pd.read_csv(filename)
+filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.parquet')
+df = pd.read_parquet(filename)
 
 # Sort the data by L_gradB and L_gradgradB
 df = df.sort_values(by='y5', key=df['y4'].add, ascending=True)
