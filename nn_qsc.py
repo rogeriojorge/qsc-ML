@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
-from keras.layers import Dense, Dropout, BatchNormalization, LeakyReLU, Conv1D, MaxPooling1D, Flatten, Input
+from keras.layers import (Dense, Dropout, Conv1D,  Flatten, Input)
 from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras.regularizers import l2
@@ -16,20 +16,21 @@ from keras.models import Sequential, Model
 import joblib
 
 params = {
+    # Change this parameter to select the amount of data to use
+    'n_data_subset': 400000,
     'results_path': 'results',
     'data_path': 'data',
     'nfp': 2,
-    'n_data_subset': 800000,
     'model': 'nn', # 'cnn' or 'nn'
     'optimizer': Adam,
     'learning_rate': 0.003,
-    'epochs': 500,
+    'epochs': 100,
     'batch_size': 256,
-    'early_stopping_patience': 10,
+    'early_stopping_patience': 5,
     'test_size': 0.2,
     'random_state': 42,
-    'reg_strength': 1e-5,
-    'dropout_rate': 5e-4,
+    'reg_strength': 1e-6,
+    'dropout_rate': 1e-3,
     'validation_split': 0.2,
     'decay_steps': 1000,
     'decay_rate': 0.9,
@@ -37,24 +38,30 @@ params = {
 
 def build_neural_network(input_shape, output_shape, reg_strength=1e-7, dropout_rate=3e-3):
     model = Sequential([
-        Dense(256, activation='relu', input_shape=(input_shape,), kernel_regularizer=l2(reg_strength)),
-        BatchNormalization(),
+        Dense(1024, activation='relu', input_shape=(input_shape,), kernel_regularizer=l2(reg_strength)),
+        # BatchNormalization(),
+        Dropout(dropout_rate),
+        Dense(512, activation='relu', kernel_regularizer=l2(reg_strength)),
+        # BatchNormalization(),
+        Dropout(dropout_rate),
+        Dense(256, activation='relu', kernel_regularizer=l2(reg_strength)),
+        # BatchNormalization(),
         Dropout(dropout_rate),
         Dense(128, activation='relu', kernel_regularizer=l2(reg_strength)),
-        BatchNormalization(),
+        # BatchNormalization(),
         Dropout(dropout_rate),
         Dense(64, activation='relu', kernel_regularizer=l2(reg_strength)),
-        BatchNormalization(),
+        # BatchNormalization(),
         Dropout(dropout_rate),
         Dense(32, activation='relu', kernel_regularizer=l2(reg_strength)),
-        BatchNormalization(),
+        # # BatchNormalization(),
         Dropout(dropout_rate),
         Dense(16, activation='relu', kernel_regularizer=l2(reg_strength)),
-        BatchNormalization(),
+        # BatchNormalization(),
         Dropout(dropout_rate),
-        Dense(8, activation='relu', kernel_regularizer=l2(reg_strength)),
-        BatchNormalization(),
-        Dropout(dropout_rate),
+        # Dense(8, activation='relu', kernel_regularizer=l2(reg_strength)),
+        # # BatchNormalization(),
+        # Dropout(dropout_rate),
         Dense(output_shape)
     ])
     return model
@@ -63,11 +70,15 @@ def build_cnn(input_shape, output_shape, reg_strength=1e-7, dropout_rate=3e-3):
     input_layer = Input(shape=input_shape)
 
     x = Conv1D(64, kernel_size=3, activation='relu', padding='same', kernel_regularizer=l2(reg_strength))(input_layer)
-    x = BatchNormalization()(x)
+    # x = BatchNormalization()(x)
     x = Dropout(dropout_rate)(x)
 
     x = Conv1D(128, kernel_size=3, activation='relu', padding='same', kernel_regularizer=l2(reg_strength))(x)
-    x = BatchNormalization()(x)
+    # x = BatchNormalization()(x)
+    x = Dropout(dropout_rate)(x)
+
+    x = Conv1D(256, kernel_size=3, activation='relu', padding='same', kernel_regularizer=l2(reg_strength))(x)
+    # x = BatchNormalization()(x)
     x = Dropout(dropout_rate)(x)
 
     x = Flatten()(x)
@@ -155,7 +166,8 @@ learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(
     initial_learning_rate=params['learning_rate'], decay_steps=params['decay_steps'], decay_rate=params['decay_rate']
 )
 
-model.compile(optimizer=params['optimizer'](learning_rate=learning_rate), loss='mae', metrics=['mae'])
+optimizer = params['optimizer'](learning_rate=learning_rate)
+model.compile(optimizer=optimizer, loss='mae', metrics=['mae'])
 
 early_stopping = EarlyStopping(monitor='val_loss', patience=params['early_stopping_patience'], restore_best_weights=True)
 

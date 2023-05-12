@@ -14,7 +14,7 @@ os.makedirs(data_path, exist_ok=True)
 os.makedirs(raw_data_path, exist_ok=True)
 
 save_as_float32 = True
-n_data_to_keep = 1000000
+n_data_to_keep = 650000
 
 if len(sys.argv) == 1:
     nfps = [2,3,4]
@@ -102,4 +102,4 @@ for filename in filenames:
     # Save the DataFrame to a Parquet file
     parquet_filename = os.path.join(data_path, str(Path(filename).stem) + '.parquet')
     df.to_parquet(parquet_filename, compression='BROTLI', index=False)
-    print(f"Parquet file created: {parquet_filename}")
+    print(f"Parquet file created: {parquet_filename} with {len(df)} rows")

@@ -22,9 +22,10 @@ from bokeh.resources import Resources
 from qsc import Qsc
 
 params = {
-    'perplexity': 55, # nfp2: 55, nfp3: 45, nfp4: 55
+    # Change this parameter to select the amount of data to use
+    'n_data_subset': 60000,
+    'perplexity': 45, # nfp2: 55, nfp3: 45, nfp4: 55
     'min_cluster_size': 100,
-    'n_data_subset': 3000,
     'ntheta': 60,
     'nphi': 90,
     'ntheta_fourier': 20,
@@ -80,7 +81,7 @@ os.chdir(this_path)
 # filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.csv')
 # df = pd.read_csv(filename)
 filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.parquet')
-df = pd.read_parquet(filename)
+df = pd.read_parquet(filename).astype('float64')
 # Only use a subset of parameters
 for column in df.columns:
     if df[column].dtype.byteorder == '>':
@@ -154,8 +155,15 @@ if params['tsne_parameters']==2:
         x_selected = df.loc[selected_indices, [col for col in df.columns if col.startswith('x')]]
 
         x_values = x_selected.filter(like='x', axis=1).iloc[:, :10].values.flatten()
-        rc, zs = np.insert(x_values[::2], 0, 1), np.insert(x_values[1::2], 0, 0)
-        etabar, B2c = x_selected.loc[:, 'x11'].values[0], x_selected.loc[:, 'x12'].values[0]
+
+        col_names = df.columns.tolist()
+        x_cols = [col for col in col_names if col.startswith('x')]
+        n_axis_fourier_modes = int((len(x_cols)-2)/2)
+        rc = np.append([1],x_values[0:2*n_axis_fourier_modes:2])
+        zs = np.append([0],x_values[1:2*n_axis_fourier_modes+1:2])
+        etabar = x_values[2*n_axis_fourier_modes]
+        B2c = x_values[2*n_axis_fourier_modes+1]
+
         stel = Qsc(rc=rc.tolist(), zs=zs.tolist(), nfp=params['nfp'], etabar=etabar, order='r3', B2c=B2c, nphi=params['nphi_qsc'])
 
         mean_x, mean_y = np.mean(X_tsne[labels == label, 0]) - 7, np.mean(X_tsne[labels == label, 1]) + 7
