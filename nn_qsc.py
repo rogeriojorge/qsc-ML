@@ -56,15 +56,6 @@ def build_neural_network(input_shape, output_shape, reg_strength=1e-7, dropout_r
         Dense(64, activation='relu', kernel_regularizer=l2(reg_strength)),
         # BatchNormalization(),
         Dropout(dropout_rate),
-        # Dense(32, activation='relu', kernel_regularizer=l2(reg_strength)),
-        # # BatchNormalization(),
-        # Dropout(dropout_rate),
-        # Dense(16, activation='relu', kernel_regularizer=l2(reg_strength)),
-        # # BatchNormalization(),
-        # Dropout(dropout_rate),
-        # Dense(8, activation='relu', kernel_regularizer=l2(reg_strength)),
-        # # BatchNormalization(),
-        # Dropout(dropout_rate),
         Dense(output_shape)
     ])
     return model
