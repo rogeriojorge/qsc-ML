@@ -55,9 +55,6 @@ def calculate_mae(y_true, y_pred):
 
 
 def plot_graphs(bins, data_subset, samples_subset, kl_divergences):
-    hist_data, _ = np.histogram(data_subset, bins=bins, density=True)
-    hist_samples, _ = np.histogram(samples_subset, bins=bins, density=True)
-
     kde_data = KernelDensity(bandwidth=1.0, kernel='gaussian').fit(data_subset[:, None])
     logprob_data = kde_data.score_samples(bins[:, None])
 
@@ -73,8 +70,8 @@ def plot_graphs(bins, data_subset, samples_subset, kl_divergences):
     plt.figure(figsize=(12, 8))
 
     plt.subplot(311)
-    plt.plot(bins, hist_data, label='Data')
-    plt.plot(bins, hist_samples, label='Samples')
+    plt.plot(bins, np.histogram(data_subset, bins=bins, density=True)[0], label='Data')
+    plt.plot(bins, np.histogram(samples_subset, bins=bins, density=True)[0], label='Samples')
     plt.title(f'Histogram (KL divergence = {kl_divergences[0]:.2f})')
     plt.legend()
 
@@ -106,13 +103,13 @@ if __name__ == "__main__":
     scaler_x = joblib.load(get_path('scaler_x.pkl'))
     scaler_y = joblib.load(get_path('scaler_y.pkl'))
 
-    samples_all = gmm_all.sample(params['n_samples'])[0]
+    samples_all = gmm_all.sample(params['n_samples'])[0][:, :X_train.shape[1]]
     samples_input = gmm_input.sample(len(X_train))[0]
     
     predictions_all = model.predict(samples_all)
     predictions_input = model.predict(samples_input)
     
-    mae_all = calculate_mae(Y_test, predictions_all)
+    mae_all = calculate_mae(Y_test, predictions_all[:Y_test.shape[0]])
     mae_input = calculate_mae(Y_test, predictions_input)
 
     data_subset = get_samples(np.concatenate((X_train, Y_train), axis=1), params['n_samples_subset'])
