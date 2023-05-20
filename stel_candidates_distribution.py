@@ -35,7 +35,7 @@ def load_data(path: str):
     df = pd.read_parquet(path).apply(pd.to_numeric, downcast='float', errors='ignore')
     df['ysum'] = df.loc[:, df.columns.str.startswith('y')].sum(axis=1)
     df = df.nsmallest(params['n_data_subset'], 'ysum').drop(columns='ysum')
-    return train_test_split(df.filter(like='y').values, df.filter(like='x').values, test_size=params['test_size'], random_state=params['random_state'])
+    return train_test_split(df.filter(like='y').values, df.filter(like='x').values, test_size=params['test_size'], random_state=params['random_state'], shuffle=True)
 
 
 def calculate_kl(p, q):
@@ -67,11 +67,17 @@ def plot_graphs(bins, data_subset, samples_subset, kl_divergences):
     gmm_samples = GaussianMixture(n_components=2).fit(samples_subset[:, None])
     logprob_gmm_samples = gmm_samples.score_samples(bins[:, None])
 
+    freq_data, bin_edges_data = np.histogram(data_subset, bins=bins, density=True)
+    freq_samples, bin_edges_samples = np.histogram(samples_subset, bins=bins, density=True)
+    
+    midpoints_data = (bin_edges_data[:-1] + bin_edges_data[1:]) / 2
+    midpoints_samples = (bin_edges_samples[:-1] + bin_edges_samples[1:]) / 2
+
     plt.figure(figsize=(12, 8))
 
     plt.subplot(311)
-    plt.plot(bins, np.histogram(data_subset, bins=bins, density=True)[0], label='Data')
-    plt.plot(bins, np.histogram(samples_subset, bins=bins, density=True)[0], label='Samples')
+    plt.plot(midpoints_data, freq_data, label='Data')
+    plt.plot(midpoints_samples, freq_samples, label='Samples')
     plt.title(f'Histogram (KL divergence = {kl_divergences[0]:.2f})')
     plt.legend()
 
@@ -90,7 +96,6 @@ def plot_graphs(bins, data_subset, samples_subset, kl_divergences):
     plt.tight_layout()
     plt.show()
 
-
 if __name__ == "__main__":
     this_path = os.path.abspath('')
     filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.parquet')
@@ -104,27 +109,37 @@ if __name__ == "__main__":
     scaler_y = joblib.load(get_path('scaler_y.pkl'))
 
     samples_all = gmm_all.sample(params['n_samples'])[0][:, :X_train.shape[1]]
-    samples_input = gmm_input.sample(len(X_train))[0]
+    samples_input = gmm_input.sample(params['n_samples'])[0]
     
     predictions_all = model.predict(samples_all)
     predictions_input = model.predict(samples_input)
+
+    # Ensure the shapes of predictions and Y_test subsets match
+    if predictions_all.shape[0] != Y_test.shape[0]:
+        predictions_all = predictions_all[:Y_test.shape[0], :]
+    if predictions_input.shape[0] != Y_test.shape[0]:
+        predictions_input = predictions_input[:Y_test.shape[0], :]
     
-    mae_all = calculate_mae(Y_test, predictions_all[:Y_test.shape[0]])
-    mae_input = calculate_mae(Y_test, predictions_input)
+    Y_test_subset_all = Y_test[:predictions_all.shape[0], :]
+    mae_all = calculate_mae(scaler_y.inverse_transform(predictions_all), Y_test_subset_all)
 
-    data_subset = get_samples(np.concatenate((X_train, Y_train), axis=1), params['n_samples_subset'])
-    samples_subset = get_samples(samples_all, params['n_samples_subset'])
+    Y_test_subset_input = Y_test[:predictions_input.shape[0], :]
+    mae_input = calculate_mae(scaler_y.inverse_transform(predictions_input), Y_test_subset_input)
 
-    bins = np.linspace(min(data_subset.min(), samples_subset.min()), 
-                       max(data_subset.max(), samples_subset.max()), 100)
+    bins = np.linspace(-10, 10, 100)
+    kl_divergences_all = []
+    kl_divergences_input = []
 
-    hist_data, _ = np.histogram(data_subset, bins=bins, density=True)
-    hist_samples, _ = np.histogram(samples_subset, bins=bins, density=True)
+    for idx in range(X_train.shape[1]):
+        data_subset_all = get_samples(Y_test[:, idx], params['n_samples_subset'])
+        samples_subset_all = predictions_all[:params['n_samples_subset'], idx]
+        kl_divergence_all = calculate_kl(data_subset_all, samples_subset_all)
+        kl_divergences_all.append(kl_divergence_all)
+        
+        data_subset_input = get_samples(Y_test[:, idx], params['n_samples_subset'])
+        samples_subset_input = predictions_input[:params['n_samples_subset'], idx]
+        kl_divergence_input = calculate_kl(data_subset_input, samples_subset_input)
+        kl_divergences_input.append(kl_divergence_input)
 
-    kl_div_hist = calculate_kl(hist_data+1e-10, hist_samples+1e-10)
-    kl_div_kde = calculate_kl(np.exp(logprob_data), np.exp(logprob_samples))
-    kl_div_gmm = calculate_kl(np.exp(logprob_gmm_data), np.exp(logprob_gmm_samples))
-
-    kl_divergences = [kl_div_hist, kl_div_kde, kl_div_gmm]
-
-    plot_graphs(bins, data_subset, samples_subset, kl_divergences)
+    plot_graphs(bins, data_subset_all, samples_subset_all, kl_divergences_all)
+    plot_graphs(bins, data_subset_input, samples_subset_input, kl_divergences_input)
