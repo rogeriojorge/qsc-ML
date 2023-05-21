@@ -193,7 +193,7 @@ plt.ylabel('Predicted values')
 plt.title(f'nfp={params["nfp"]}, model={params["model"]}, metric={mae:.3f}, loss={loss:.3f}, epochs={params["epochs"]}, batch_size={params["batch_size"]}')
 plt.legend()
 plt.grid(True)
-plt.savefig(os.path.join(results_path, f"nn_predioctions_qsc_nfp{params['nfp']}_model{params['model']}.png"))
+plt.savefig(os.path.join(results_path, f"nn_predictions_qsc_nfp{params['nfp']}_model{params['model']}.png"))
 
 plt.figure(figsize=(8, 8))
 plt.plot(history.history['loss'])
