@@ -15,8 +15,8 @@ from qsc import Qsc
 params = {
     'results_path': 'results',
     'data_path': 'data',
-    'nfp': 4,
-    'n_samples': 50,
+    'nfp': 2,
+    'n_samples': 250,
     'gmm_n_components': 19,
     'model': 'nn',
     'number_of_samples': 100,
@@ -51,16 +51,17 @@ pipeline.fit(train_data)
 # Prepare a list to hold the samples
 samples = []
 
-# Continue sampling until we have 10k samples with values > 0
+# Continue sampling until we have number_of_samples samples with values > 0
 while len(samples) < params['number_of_samples']:
     # Sample a batch of 1000 samples at once for efficiency
     batch = pipeline.steps[0][1].inverse_transform(pipeline.steps[1][1].sample(params['number_of_samples'])[0])
     # Filter out samples with values <= 0
-    batch = batch = batch[np.all(batch > 0, axis=1)]
+    ########## Why was this filter here?? ##########
+    # batch = batch = batch[np.all(batch > 0, axis=1)]
     # Append the valid samples to our list
     samples.extend(batch)
 
-# Truncate the list to exactly 10k samples
+# Truncate the list to exactly number_of_samples samples
 samples = np.array(samples[:params['number_of_samples']])
 
 model_path = os.path.join(params['results_path'], f"nfp{params['nfp']}", f"nn_qsc_nfp{params['nfp']}_model{params['model']}.h5")
@@ -72,7 +73,8 @@ scaler_x = joblib.load(scaler_x_path)
 scaler_y = joblib.load(scaler_y_path)
 
 n_samples_index = 0
-prediction = make_prediction(model, scaler_x, samples[n_samples_index])
+sample = samples[n_samples_index]
+prediction = make_prediction(model, scaler_x, sample)
 
 n_axis_fourier_modes = int((len(prediction)-2)/2)
 predicted_rc = np.append([1],prediction[0:2*n_axis_fourier_modes:2])
@@ -87,6 +89,7 @@ print(f'  predicted_etabar  = {predicted_eta_bar:.3e}')
 print(f'  predicted_B2c     = {predicted_B2c:.3e}')
 print('------------------------------------------')
 print(f'  predicted_iota          = {stel.iota:.3e}')
+print(f'  asked_iota              = {sample[0]:.3e}')
 print(f'  predicted_elongation    = {stel.max_elongation:.3e}')
 print(f'  predicted_L_gradB       = {stel.min_L_grad_B:.3e}')
 print(f'  predicted_L_gradgradB   = {1/stel.grad_grad_B_inverse_scale_length:.3e}')
@@ -115,19 +118,20 @@ for prediction_sample in tqdm(predictions):
     B2c = prediction_sample[2*n_axis_fourier_modes+1]
     stel = Qsc(rc=rc, zs=zs, etabar=eta_bar, nfp=int(params['nfp']), B2c=B2c, order='r2', nphi=71)
     Y_test.append([
-        0.33*np.abs(1/stel.iota),
-        0.06/stel.r_singularity,
+        stel.iota,
+        stel.r_singularity,
         stel.B20_variation,
-        stel.max_elongation/8,
-        0.6/stel.min_L_grad_B,
-        0.6*stel.grad_grad_B_inverse_scale_length,
-        0.3/stel.min_R0,
+        stel.max_elongation,
+        stel.min_L_grad_B,
+        1/stel.grad_grad_B_inverse_scale_length,
+        stel.min_R0,
+        stel.d2_volume_d_psi2,
     ])
-
 Y_test = np.array(Y_test)
-print(Y_test.shape)
-print(samples.shape)
-print(f'MAE: {np.mean(np.abs(Y_test-samples))}')
+
+# loss, mae = model.evaluate(predictions, Y_test, verbose=0)
+# print(f"Test MAE: {mae}")
+# print(f"Test Loss: {loss}")
 
 plt.figure(figsize=(8, 8))
 plt.scatter(Y_test, samples, label='Predicted values', alpha=0.5)
