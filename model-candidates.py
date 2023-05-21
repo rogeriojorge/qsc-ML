@@ -15,7 +15,7 @@ from qsc import Qsc
 params = {
     'results_path': 'results',
     'data_path': 'data',
-    'nfp': 2,
+    'nfp': 4,
     'n_samples': 50,
     'gmm_n_components': 19,
     'model': 'nn',

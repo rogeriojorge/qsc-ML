@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
-from keras.layers import (Dense, Dropout, Conv1D,  Flatten, Input)
+from keras.layers import (Dense, Dropout, Conv1D,  Flatten, Input, BatchNormalization)
 from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras.regularizers import l2
@@ -17,19 +17,19 @@ import joblib
 
 params = {
     # Change this parameter to select the amount of data to use
-    'n_data_subset': 400000,
+    'n_data_subset': 300000,
     'results_path': 'results',
     'data_path': 'data',
     'nfp': 2,
     'model': 'nn', # 'cnn' or 'nn'
     'optimizer': Adam,
-    'learning_rate': 0.003,
-    'epochs': 100,
-    'batch_size': 256,
-    'early_stopping_patience': 5,
+    'learning_rate': 0.02,
+    'epochs': 200,
+    'batch_size': 2048,
+    'early_stopping_patience': 40,
     'test_size': 0.2,
     'random_state': 42,
-    'reg_strength': 1e-6,
+    'reg_strength': 1e-4,
     'dropout_rate': 1e-3,
     'validation_split': 0.2,
     'decay_steps': 1000,
@@ -38,12 +38,12 @@ params = {
 
 def build_neural_network(input_shape, output_shape, reg_strength=1e-7, dropout_rate=3e-3):
     model = Sequential([
-        Dense(2048, activation='relu', input_shape=(input_shape,), kernel_regularizer=l2(reg_strength)),
+        Dense(1024, activation='relu', input_shape=(input_shape,), kernel_regularizer=l2(reg_strength)),
         # BatchNormalization(),
         Dropout(dropout_rate),
-        Dense(1024, activation='relu', kernel_regularizer=l2(reg_strength)),
-        # BatchNormalization(),
-        Dropout(dropout_rate),
+        # Dense(1024, activation='relu', kernel_regularizer=l2(reg_strength)),
+        # # BatchNormalization(),
+        # Dropout(dropout_rate),
         Dense(512, activation='relu', kernel_regularizer=l2(reg_strength)),
         # BatchNormalization(),
         Dropout(dropout_rate),
@@ -130,15 +130,15 @@ os.makedirs(results_path, exist_ok=True)
 # filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.csv')
 # df = pd.read_csv(filename)
 filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.parquet')
-df = pd.read_parquet(filename)
+df = pd.read_parquet(filename).sample(params['n_data_subset'],random_state=params['random_state'])
 
 # Only use a subset of parameters
 for column in df.columns:
     if df[column].dtype.byteorder == '>':
         df[column] = df[column].values.byteswap().newbyteorder()
-df['ysum'] = df.loc[:, df.columns.str.startswith('y')].sum(axis=1)
-df = df.sort_values(by='ysum', ascending=True).head(params['n_data_subset'])
-df = df.drop(columns='ysum')
+# df['ysum'] = df.loc[:, df.columns.str.startswith('y')].sum(axis=1)
+# df = df.sort_values(by='ysum', ascending=True).head(params['n_data_subset'])
+# df = df.drop(columns='ysum')
 
 x_columns = [col for col in df.columns if col.startswith('x')]
 y_columns = [col for col in df.columns if col.startswith('y')]

@@ -60,14 +60,14 @@ for filename in filenames:
     data.update({
         f'x{2*R0c.shape[1]-1}': eta_bar,
         f'x{2*R0c.shape[1]}': B2c,
-        f'y0': 0.33*np.abs(1/iota),
-        f'y1': 0.06/r_singularity,
-        f'y2': B20_variation,
-        f'y3': elongation/8,
-        f'y4': 0.6/L_grad_B,
-        f'y5': 0.6/L_grad_grad_B,
-        f'y6': 0.3/min_R0,
-        # f'y7': -80/d2_volume_d_psi2,
+        f'y0': iota,#0.33*np.abs(1/iota),
+        f'y1': r_singularity,#0.06/r_singularity,
+        f'y2': B20_variation,#B20_variation,
+        f'y3': elongation,#elongation/8,
+        f'y4': L_grad_B,#0.6/L_grad_B,
+        f'y5': L_grad_grad_B,#0.6/L_grad_grad_B,
+        f'y6': min_R0,#0.3/min_R0,
+        f'y7': d2_volume_d_psi2,#-80/d2_volume_d_psi2,
     })
 
     df = pd.DataFrame(data)
