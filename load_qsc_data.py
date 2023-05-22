@@ -60,32 +60,31 @@ for filename in filenames:
     data.update({
         f'x{2*R0c.shape[1]-1}': eta_bar,
         f'x{2*R0c.shape[1]}': B2c,
-        f'y0': iota,#0.33*np.abs(1/iota),
+        f'y0': np.abs(iota),#0.33*np.abs(1/iota),
         f'y1': r_singularity,#0.06/r_singularity,
-        f'y2': B20_variation,#B20_variation,
-        f'y3': elongation,#elongation/8,
-        f'y4': L_grad_B,#0.6/L_grad_B,
-        f'y5': L_grad_grad_B,#0.6/L_grad_grad_B,
-        f'y6': min_R0,#0.3/min_R0,
-        f'y7': d2_volume_d_psi2,#-80/d2_volume_d_psi2,
+        f'y2': 1/B20_variation,#B20_variation,
+        f'y3': L_grad_B,#0.6/L_grad_B,
+        f'y4': L_grad_grad_B,#0.6/L_grad_grad_B,
+        f'y5': min_R0,#0.3/min_R0,
+        f'y6': 1/elongation,#elongation/8,
+        # f'y7': d2_volume_d_psi2,#-80/d2_volume_d_psi2,
     })
 
-    df = pd.DataFrame(data)
+    df = pd.DataFrame(data).sample(n_data_to_keep,random_state=42)
 
     # Ensure data is in the correct byte order
     for column in df.columns:
         if df[column].dtype.byteorder == '>':
             df[column] = df[column].values.byteswap().newbyteorder()
 
+    # # Create a new column that is the sum of all y columns
+    # df['ysum'] = df.loc[:, df.columns.str.startswith('y')].sum(axis=1)
 
-    # Create a new column that is the sum of all y columns
-    df['ysum'] = df.loc[:, df.columns.str.startswith('y')].sum(axis=1)
+    # # Sort by this new column and keep only the top n_data_to_keep rows
+    # df = df.sort_values(by='ysum', ascending=True).head(n_data_to_keep)
 
-    # Sort by this new column and keep only the top n_data_to_keep rows
-    df = df.sort_values(by='ysum', ascending=True).head(n_data_to_keep)
-
-    # Drop the 'ysum' column as it's no longer needed
-    df = df.drop(columns='ysum')
+    # # Drop the 'ysum' column as it's no longer needed
+    # df = df.drop(columns='ysum')
 
     # Find all columns that are of type float64
     float64_cols = df.select_dtypes(include=['float64']).columns
