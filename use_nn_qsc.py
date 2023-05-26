@@ -18,10 +18,12 @@ else:
 
 params = {'results_path': 'results',
           'data_path': 'data',
-          'nfp': 2,
+          'nfp': 4,
           'data_location': 0,
           'model': 'nn', # 'cnn' or 'nn',
           'r_plot': 0.1,
+          'train_with_best_points': False,
+          'use_even_better_points': True,
           }
 
 def load_saved_model_and_scaler(model_path, scaler_x_path, scaler_y_path):
@@ -61,7 +63,7 @@ os.makedirs(results_path, exist_ok=True)
 # Load the data
 # filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.csv')
 # df = pd.read_csv(filename)
-filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.parquet')
+filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}'+(f"_best" if params['train_with_best_points'] else "")+(f"_best" if params['use_even_better_points'] else "")+'.parquet')
 df = pd.read_parquet(filename)
 
 # Sort the data by L_gradB and L_gradgradB
@@ -69,9 +71,9 @@ df = pd.read_parquet(filename)
 # df = df.sort_values(by='y0', key=df['y1'].add, ascending=True)
 
 # Load the model and scaler
-model_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_model{params['model']}.h5")
-scaler_x_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_x.pkl")
-scaler_y_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_y.pkl")
+model_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_model{params['model']}"+(f"_best" if params['train_with_best_points'] else "")+".h5")
+scaler_x_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_x"+(f"_best" if params['train_with_best_points'] else "")+".pkl")
+scaler_y_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_y"+(f"_best" if params['train_with_best_points'] else "")+".pkl")
 model, scaler_x, scaler_y = load_saved_model_and_scaler(model_path, scaler_x_path, scaler_y_path)
 
 # Create list of input data

@@ -35,6 +35,7 @@ params = {
     'decay_steps': 1000,
     'decay_rate': 0.9,
     'train_with_best_points': True,
+    'use_even_better_points': True,
 }
 
 def build_neural_network(input_shape, output_shape, reg_strength=1e-7, dropout_rate=3e-3):
@@ -130,13 +131,14 @@ os.makedirs(results_path, exist_ok=True)
 
 # filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.csv')
 # df = pd.read_csv(filename)
+filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}')
 if params['train_with_best_points']:
-    filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}_best.parquet')
-else:
-    filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.parquet')
-df = pd.read_parquet(filename)
+    filename+="_best"
+if params['use_even_better_points']:
+    filename+="_best"
+df = pd.read_parquet(filename+".parquet")
 if params['n_data_subset'] > len(df):
-    print('Warning: n_data_subset is larger than the number of data points available. Using all data points.')
+    print(f'Warning: n_data_subset {params["n_data_subset"]} is larger than the number of data points available {len(df)}. Using all data points.')
     params['n_data_subset'] = len(df)
 else:
     df = df.sample(params['n_data_subset'],random_state=params['random_state'])
@@ -186,9 +188,9 @@ print(f"Test Loss: {loss}")
 predictions = model(X_test)
 
 # Save the model and scaler
-model.save(os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_model{params['model']}.h5"))
-joblib.dump(scaler_x, os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_x.pkl"))
-joblib.dump(scaler_y, os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_y.pkl"))
+model.save(os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_model{params['model']}"+(f"_best" if params['train_with_best_points'] else "")+".h5"))
+joblib.dump(scaler_x, os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_x"+(f"_best" if params['train_with_best_points'] else "")+".pkl"))
+joblib.dump(scaler_y, os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_y"+(f"_best" if params['train_with_best_points'] else "")+".pkl"))
 print(f"Model and scaler saved in {results_path}")
 
 plt.figure(figsize=(8, 8))
@@ -201,7 +203,7 @@ plt.ylabel('Predicted values')
 plt.title(f'nfp={params["nfp"]}, model={params["model"]}, metric={mae:.3f}, loss={loss:.3f}, epochs={params["epochs"]}, batch_size={params["batch_size"]}')
 plt.legend()
 plt.grid(True)
-plt.savefig(os.path.join(results_path, f"nn_predictions_qsc_nfp{params['nfp']}_model{params['model']}.png"))
+plt.savefig(os.path.join(results_path, f"nn_predictions_qsc_nfp{params['nfp']}_model{params['model']}"+(f"_best" if params['train_with_best_points'] else "")+".png"))
 
 plt.figure(figsize=(8, 8))
 plt.plot(history.history['loss'])
@@ -210,6 +212,6 @@ plt.title('Model loss')
 plt.ylabel('Loss') 
 plt.xlabel('Epoch') 
 plt.legend(['Train', 'Test'], loc='upper left') 
-plt.savefig(os.path.join(results_path, f"nn_history_qsc_nfp{params['nfp']}_model{params['model']}.png"))
+plt.savefig(os.path.join(results_path, f"nn_history_qsc_nfp{params['nfp']}_model{params['model']}"+(f"_best" if params['train_with_best_points'] else "")+".png"))
 
 plt.show()

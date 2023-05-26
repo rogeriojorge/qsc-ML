@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
 import joblib
 
 from keras.models import load_model
@@ -16,7 +15,8 @@ params = {'results_path': 'results',
           'random_state': 42,
           'test_size': 0.2,
           'n_data_subset': 650000,
-          'n_best': 100000,  # number of best predictions to retain
+          'n_best': 10000,  # number of best predictions to retain
+          'train_with_best_points': True,
           }
 
 def load_saved_model_and_scaler(model_path, scaler_x_path, scaler_y_path):
@@ -43,14 +43,19 @@ results_path = os.path.join(general_results_path, f'nfp{params["nfp"]}')
 os.makedirs(results_path, exist_ok=True)
 
 # Load the model and scaler
-model_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_model{params['model']}.h5")
-scaler_x_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_x.pkl")
-scaler_y_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_y.pkl")
+model_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_model{params['model']}"+(f"_best" if params['train_with_best_points'] else "")+".h5")
+scaler_x_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_x"+(f"_best" if params['train_with_best_points'] else "")+".pkl")
+scaler_y_path = os.path.join(results_path, f"nn_qsc_nfp{params['nfp']}_scaler_y"+(f"_best" if params['train_with_best_points'] else "")+".pkl")
 model, scaler_x, scaler_y = load_saved_model_and_scaler(model_path, scaler_x_path, scaler_y_path)
 
 # Load the data
-filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.parquet')
-df = pd.read_parquet(filename).sample(params['n_data_subset'],random_state=params['random_state'])
+filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}'+(f"_best" if params['train_with_best_points'] else "")+'.parquet')
+df = pd.read_parquet(filename)
+if len(df) < params['n_data_subset']:
+    params['n_data_subset'] = len(df)
+    df = df
+else:
+    df = df.sample(params['n_data_subset'],random_state=params['random_state'])
 for column in df.columns:
     if df[column].dtype.byteorder == '>':
         df[column] = df[column].values.byteswap().newbyteorder()
@@ -80,7 +85,7 @@ plt.bar(range(len(worst_predicted_indices_count)), worst_predicted_indices_count
 plt.xlabel('Index')
 plt.ylabel('Number of times worst predicted')
 plt.title('Histogram of Worst Predicted Indices')
-plt.savefig(os.path.join(results_path, f"nn_worst_prediction_indices_qsc_nfp{params['nfp']}_model{params['model']}.png"))
+plt.savefig(os.path.join(results_path, f"nn_worst_prediction_indices_qsc_nfp{params['nfp']}_model{params['model']}"+(f"_best" if params['train_with_best_points'] else "")+".png"))
 
 plt.figure(figsize=(8, 8))
 plt.scatter(Y_scaled, predictions, label='Predicted values', alpha=0.5)
@@ -92,7 +97,7 @@ plt.ylabel('Predicted values')
 plt.title(f'nfp={params["nfp"]}, model={params["model"]}, metric={mae:.3f}, loss={loss:.3f}')
 plt.legend()
 plt.grid(True)
-plt.savefig(os.path.join(results_path, f"nn_predictions_all_qsc_nfp{params['nfp']}_model{params['model']}.png"))
+plt.savefig(os.path.join(results_path, f"nn_predictions_all_qsc_nfp{params['nfp']}_model{params['model']}"+(f"_best" if params['train_with_best_points'] else "")+".png"))
 
 # Create a DataFrame to hold original data and associated errors
 relative_errors_1 = np.abs((predictions_descaled - Y_scaled_descaled)/predictions_descaled)
@@ -101,18 +106,18 @@ relative_errors_2 = np.abs((predictions_descaled - Y_scaled_descaled)/Y_scaled_d
 df_with_errors = df.copy()
 df_with_errors['error_1'] = np.max(relative_errors_1, axis=1)
 df_sorted = df_with_errors.sort_values(by=['error_1'])
-df_best = df_sorted.head(2*params['n_best'])
+df_best = df_sorted.head(int(2*params['n_best'] if 2*params['n_best'] < len(df) else len(df)/2))
 df_with_errors['error_2'] = np.max(relative_errors_2, axis=1)
 df_sorted = df_with_errors.sort_values(by=['error_2'])
-df_best = df_sorted.head(params['n_best'])
+df_best = df_sorted.head(int(  params['n_best'] if 2*params['n_best'] < len(df) else len(df)/4))
 df_best = df_best.drop(columns=['error_1'])
 df_best = df_best.drop(columns=['error_2'])
 
-best_filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}_best.parquet')
+best_filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}_best'+(f"_best" if params['train_with_best_points'] else "")+'.parquet')
 df_best.to_parquet(best_filename)
 
 # Load the best data
-best_filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}_best.parquet')
+best_filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}_best'+(f"_best" if params['train_with_best_points'] else "")+'.parquet')
 df_best = pd.read_parquet(best_filename)
 
 Y_best = df_best[x_columns].values
@@ -136,4 +141,4 @@ plt.ylabel('Predicted values')
 plt.title(f'nfp={params["nfp"]}, model={params["model"]}, Best metric={best_mae:.3f}, Best loss={best_loss:.3f}')
 plt.legend()
 plt.grid(True)
-plt.savefig(os.path.join(results_path, f"nn_predictions_best_qsc_nfp{params['nfp']}_model{params['model']}.png"))
+plt.savefig(os.path.join(results_path, f"nn_predictions_best_qsc_nfp{params['nfp']}_model{params['model']}"+(f"_best" if params['train_with_best_points'] else "")+".png"))
