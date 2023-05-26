@@ -135,8 +135,6 @@ if params['train_with_best_points']:
 else:
     filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.parquet')
 df = pd.read_parquet(filename)
-print(params['n_data_subset'])
-print(len(df))
 if params['n_data_subset'] > len(df):
     print('Warning: n_data_subset is larger than the number of data points available. Using all data points.')
     params['n_data_subset'] = len(df)
