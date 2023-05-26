@@ -34,6 +34,7 @@ params = {
     'validation_split': 0.2,
     'decay_steps': 1000,
     'decay_rate': 0.9,
+    'train_with_best_points': True,
 }
 
 def build_neural_network(input_shape, output_shape, reg_strength=1e-7, dropout_rate=3e-3):
@@ -129,10 +130,19 @@ os.makedirs(results_path, exist_ok=True)
 
 # filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.csv')
 # df = pd.read_csv(filename)
-filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.parquet')
-df = pd.read_parquet(filename).sample(params['n_data_subset'],random_state=params['random_state'])
+if params['train_with_best_points']:
+    filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}_best.parquet')
+else:
+    filename = os.path.join(this_path, params['data_path'], f'qsc_out.random_scan_nfp{params["nfp"]}.parquet')
+df = pd.read_parquet(filename)
+print(params['n_data_subset'])
+print(len(df))
+if params['n_data_subset'] > len(df):
+    print('Warning: n_data_subset is larger than the number of data points available. Using all data points.')
+    params['n_data_subset'] = len(df)
+else:
+    df = df.sample(params['n_data_subset'],random_state=params['random_state'])
 
-# Only use a subset of parameters
 for column in df.columns:
     if df[column].dtype.byteorder == '>':
         df[column] = df[column].values.byteswap().newbyteorder()
