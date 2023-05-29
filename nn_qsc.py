@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
 from keras.layers import (Dense, Dropout, Conv1D,  Flatten, Input, BatchNormalization)
-from keras.optimizers import Adam
+from keras.optimizers import Adam, SGD, RMSprop, Nadam
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras.regularizers import l2
 from keras.models import Sequential, Model
@@ -17,15 +17,15 @@ import joblib
 
 params = {
     # Change this parameter to select the amount of data to use
-    'n_data_subset': 300000,
+    'n_data_subset': 400000,
     'results_path': 'results',
     'data_path': 'data',
-    'nfp': 2,
+    'nfp': 3,
     'model': 'nn', # 'cnn' or 'nn'
     'optimizer': Adam,
-    'learning_rate': 0.015,
+    'learning_rate': 0.004,
     'epochs': 400,
-    'batch_size': 1024,
+    'batch_size': 2048,
     'early_stopping_patience': 30,
     'test_size': 0.2,
     'random_state': 42,
@@ -34,21 +34,24 @@ params = {
     'validation_split': 0.2,
     'decay_steps': 1000,
     'decay_rate': 0.9,
-    'train_with_best_points': True,
-    'use_even_better_points': True,
+    'train_with_best_points': False,
+    'use_even_better_points': False,
+    'select_best_sum_y': False,
+    'use_sum_y_as_X': False,
+    'columns_to_use': 'all'#['y0', 'y1', 'y2', 'y3', 'y4', 'y5', 'y6', 'y7']
 }
 
 def build_neural_network(input_shape, output_shape, reg_strength=1e-7, dropout_rate=3e-3):
     model = Sequential([
-        Dense(1024, activation='relu', input_shape=(input_shape,), kernel_regularizer=l2(reg_strength)),
+        Dense(512, activation='relu', input_shape=(input_shape,), kernel_regularizer=l2(reg_strength)),
         # BatchNormalization(),
         Dropout(dropout_rate),
         # Dense(1024, activation='relu', kernel_regularizer=l2(reg_strength)),
         # # BatchNormalization(),
         # Dropout(dropout_rate),
-        Dense(512, activation='relu', kernel_regularizer=l2(reg_strength)),
-        # BatchNormalization(),
-        Dropout(dropout_rate),
+        # Dense(512, activation='relu', kernel_regularizer=l2(reg_strength)),
+        # # BatchNormalization(),
+        # Dropout(dropout_rate),
         Dense(256, activation='relu', kernel_regularizer=l2(reg_strength)),
         # BatchNormalization(),
         Dropout(dropout_rate),
@@ -141,7 +144,12 @@ if params['n_data_subset'] > len(df):
     print(f'Warning: n_data_subset {params["n_data_subset"]} is larger than the number of data points available {len(df)}. Using all data points.')
     params['n_data_subset'] = len(df)
 else:
-    df = df.sample(params['n_data_subset'],random_state=params['random_state'])
+    if params['select_best_sum_y']:
+        df['ysum'] = df.loc[:, df.columns.str.startswith('y')].sum(axis=1)
+        df = df.sort_values(by='ysum', ascending=True).head(params['n_data_subset'])
+        df = df.drop(columns='ysum')
+    else:
+        df = df.sample(params['n_data_subset'],random_state=params['random_state'])
 
 for column in df.columns:
     if df[column].dtype.byteorder == '>':
@@ -151,11 +159,16 @@ for column in df.columns:
 # df = df.drop(columns='ysum')
 
 x_columns = [col for col in df.columns if col.startswith('x')]
-y_columns = [col for col in df.columns if col.startswith('y')]
+y_columns = params['columns_to_use'] if params['columns_to_use'] != 'all' else [col for col in df.columns if col.startswith('y')]
+#y = [iota,   r_singularity, 1/B20_variation, L_grad_B, L_grad_grad_B, min_R0, 1/elongation]
 
 ## ACTUALLY SOLVING THE INVERSE PROBLEM
 Y = df[x_columns].values
-X = df[y_columns].values
+if params['use_sum_y_as_X']:
+    df['summed_y'] = df[y_columns].sum(axis=1)
+    X = df['summed_y'].values.reshape(-1, 1)  # reshape is required because this is a single feature
+else:
+    X = df[y_columns].values
 
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=params['test_size'], random_state=params['random_state'])
 
@@ -166,11 +179,11 @@ if params['model'] == 'cnn':
 else:
     model = build_neural_network(input_shape, output_shape, reg_strength=params['reg_strength'], dropout_rate=params['dropout_rate'])
 
-learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(
-    initial_learning_rate=params['learning_rate'], decay_steps=params['decay_steps'], decay_rate=params['decay_rate']
-)
+# learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(
+#     initial_learning_rate=params['learning_rate'], decay_steps=params['decay_steps'], decay_rate=params['decay_rate']
+# )
 
-optimizer = params['optimizer'](learning_rate=learning_rate)
+optimizer = params['optimizer'](learning_rate=params['learning_rate'])#learning_rate)
 model.compile(optimizer=optimizer, loss='mae', metrics=['mae'])
 
 early_stopping = EarlyStopping(monitor='val_loss', patience=params['early_stopping_patience'], restore_best_weights=True)

@@ -45,6 +45,10 @@ for filename in filenames:
     min_R0 = f.variables['scan_min_R0'][()]
     R0c = f.variables['scan_R0c'][()]
     Z0s = f.variables['scan_Z0s'][()]
+    curvature = f.variables['scan_max_curvature'][()]
+    standard_deviation_of_Z = f.variables['scan_standard_deviation_of_Z'][()]
+    standard_deviation_of_R = f.variables['scan_standard_deviation_of_R'][()]
+    helicity = f.variables['scan_helicity'][()].byteswap().newbyteorder()
 
     # For r_singularity, replace 1e30 with 1
     r_singularity = np.minimum(r_singularity, np.ones_like(r_singularity))
@@ -60,14 +64,18 @@ for filename in filenames:
     data.update({
         f'x{2*R0c.shape[1]-1}': eta_bar,
         f'x{2*R0c.shape[1]}': B2c,
-        f'y0': np.abs(iota),#0.33*np.abs(1/iota),
+        f'y0': iota,#0.33*np.abs(1/iota),
         f'y1': r_singularity,#0.06/r_singularity,
-        f'y2': 1/B20_variation,#B20_variation,
+        f'y2': B20_variation,#B20_variation,
         f'y3': L_grad_B,#0.6/L_grad_B,
         f'y4': L_grad_grad_B,#0.6/L_grad_grad_B,
         f'y5': min_R0,#0.3/min_R0,
-        f'y6': 1/elongation,#elongation/8,
-        # f'y7': d2_volume_d_psi2,#-80/d2_volume_d_psi2,
+        f'y6': elongation,#elongation/8,
+        f'y7': d2_volume_d_psi2,#-80/d2_volume_d_psi2,
+        f'y8': curvature,#0.6/curvature,
+        f'y9': standard_deviation_of_Z,#0.6/standard_deviation_of_Z,
+        f'y10': standard_deviation_of_R,#0.6/standard_deviation_of_R,
+        f'y11': helicity,#0.6/helicity,
     })
 
     df = pd.DataFrame(data).sample(n_data_to_keep,random_state=42)
